@@ -2,6 +2,10 @@
 const GOOGLE_CLIENT_ID = "309562030182-jit2t0v0ae7kiugr9mganp5v5glh2eek.apps.googleusercontent.com";
 const GOOGLE_API_KEY = "AIzaSyA3EF3XnFFEBiNmp5DU5WLwribC-7Guytw";
 
+// 가족 공유 캘린더 하나만 고정하려면 해당 캘린더 ID를 입력하세요.
+// 비워 두면 기본(primary) 캘린더를 제외한 캘린더 목록을 보여 줍니다.
+const FAMILY_CALENDAR_ID = "846d074f08c35cbdd8732923d73d60399e9b316803cc78f74fbd87d793e4c0b6@group.calendar.google.com";
+
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
   "https://www.googleapis.com/auth/calendar.events"
@@ -15,7 +19,11 @@ const $ = (id) => document.getElementById(id);
 let tokenClient;
 let googleReady = false;
 let selectedCalendar = "";
-let displayedMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let displayedMonth = new Date(
+  new Date().getFullYear(),
+  new Date().getMonth(),
+  1
+);
 let events = [];
 
 function showMessage(message, error = false) {
@@ -45,7 +53,9 @@ function dateKey(date) {
 }
 
 function dateTimeValue(date) {
-  const adjusted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  const adjusted = new Date(
+    date.getTime() - date.getTimezoneOffset() * 60000
+  );
   return adjusted.toISOString().slice(0, 16);
 }
 
@@ -62,7 +72,9 @@ function eventStartKey(event) {
 }
 
 function eventTimeLabel(event) {
-  if (event.start?.date && !event.start?.dateTime) return "종일";
+  if (event.start?.date && !event.start?.dateTime) {
+    return "종일";
+  }
   if (!event.start?.dateTime) return "";
 
   return new Intl.DateTimeFormat("ko-KR", {
@@ -75,9 +87,14 @@ async function initializeCalendar() {
   try {
     if (
       GOOGLE_CLIENT_ID.startsWith("여기에_") ||
-      GOOGLE_API_KEY.startsWith("여기에_")
+      GOOGLE_API_KEY.startsWith("여기에_") ||
+      GOOGLE_CLIENT_ID.includes("기존 OAuth") ||
+      GOOGLE_API_KEY.includes("기존 Google")
     ) {
-      showMessage("파일 맨 위에 기존 OAuth 클라이언트 ID와 API 키를 입력해 주세요.", true);
+      showMessage(
+        "파일 맨 위에 기존 OAuth 클라이언트 ID와 API 키를 입력해 주세요.",
+        true
+      );
       return;
     }
 
@@ -98,11 +115,17 @@ async function initializeCalendar() {
       scope: SCOPES,
       callback: async (response) => {
         if (response.error) {
-          showMessage("구글 인증에 실패했어요. 테스트 사용자 설정을 확인해 주세요.", true);
+          showMessage(
+            "구글 인증에 실패했어요. 테스트 사용자 설정을 확인해 주세요.",
+            true
+          );
           return;
         }
 
-        gapi.client.setToken({ access_token: response.access_token });
+        gapi.client.setToken({
+          access_token: response.access_token
+        });
+
         $("google-connect-btn").textContent = "구글 계정 연결됨";
         $("google-calendar-controls").classList.remove("hidden");
 
@@ -114,7 +137,10 @@ async function initializeCalendar() {
     renderCalendarShell();
   } catch (error) {
     console.error(error);
-    showMessage("구글 캘린더 초기화에 실패했어요. API 설정을 확인해 주세요.", true);
+    showMessage(
+      "구글 캘린더 초기화에 실패했어요. API 설정을 확인해 주세요.",
+      true
+    );
   }
 }
 
@@ -139,23 +165,46 @@ async function loadCalendars() {
     const select = $("google-calendar-select");
     select.replaceChildren();
 
-    calendars.forEach(calendar => {
+    // 캘린더 ID를 지정하면 해당 캘린더 하나만 표시합니다.
+    // 비어 있으면 기본 개인 캘린더(primary)를 제외합니다.
+    const visibleCalendars = FAMILY_CALENDAR_ID
+      ? calendars.filter(
+          calendar => calendar.id === FAMILY_CALENDAR_ID
+        )
+      : calendars.filter(calendar => !calendar.primary);
+
+    visibleCalendars.forEach(calendar => {
       const option = document.createElement("option");
       option.value = calendar.id;
-      option.textContent = calendar.summary || "이름 없는 캘린더";
+      option.textContent =
+        calendar.summary || "이름 없는 캘린더";
       select.appendChild(option);
     });
 
-    if (!calendars.length) {
-      showMessage("접근 가능한 캘린더가 없어요.", true);
+    if (!visibleCalendars.length) {
+      showMessage(
+        FAMILY_CALENDAR_ID
+          ? "설정한 가족 캘린더를 찾지 못했어요. 캘린더 ID와 공유 권한을 확인해 주세요."
+          : "기본 캘린더 외에 표시할 캘린더가 없어요. 가족 공유 캘린더를 추가했는지 확인해 주세요.",
+        true
+      );
       return;
+    }
+
+    if (!FAMILY_CALENDAR_ID) {
+      showMessage(
+        "기본 캘린더는 숨겼어요. 가족 공유 캘린더 하나만 표시하려면 FAMILY_CALENDAR_ID에 해당 캘린더 ID를 입력해 주세요."
+      );
     }
 
     selectedCalendar = select.value;
     await loadMonthEvents();
   } catch (error) {
     console.error(error);
-    showMessage("캘린더 목록을 불러오지 못했어요. 계정과 공유 권한을 확인해 주세요.", true);
+    showMessage(
+      "캘린더 목록을 불러오지 못했어요. 계정과 공유 권한을 확인해 주세요.",
+      true
+    );
   }
 }
 
@@ -163,8 +212,17 @@ async function loadMonthEvents() {
   selectedCalendar = $("google-calendar-select").value;
   if (!selectedCalendar) return;
 
-  const start = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), 1);
-  const end = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() + 1, 1);
+  const start = new Date(
+    displayedMonth.getFullYear(),
+    displayedMonth.getMonth(),
+    1
+  );
+
+  const end = new Date(
+    displayedMonth.getFullYear(),
+    displayedMonth.getMonth() + 1,
+    1
+  );
 
   try {
     showMessage("일정을 불러오는 중이에요.");
@@ -181,10 +239,16 @@ async function loadMonthEvents() {
 
     events = response.result.items || [];
     renderCalendar();
-    showMessage(`${displayedMonth.getFullYear()}년 ${displayedMonth.getMonth() + 1}월 일정을 불러왔어요.`);
+
+    showMessage(
+      `${displayedMonth.getFullYear()}년 ${displayedMonth.getMonth() + 1}월 일정을 불러왔어요.`
+    );
   } catch (error) {
     console.error(error);
-    showMessage("일정을 불러오지 못했어요. 캘린더 권한을 확인해 주세요.", true);
+    showMessage(
+      "일정을 불러오지 못했어요. 캘린더 권한을 확인해 주세요.",
+      true
+    );
   }
 }
 
@@ -195,9 +259,12 @@ function renderCalendarShell() {
   container.innerHTML = `
     <div class="month-toolbar">
       <div class="month-navigation">
-        <button type="button" id="month-prev" class="button button-light" aria-label="이전 달">‹</button>
-        <button type="button" id="month-today" class="button button-light">오늘</button>
-        <button type="button" id="month-next" class="button button-light" aria-label="다음 달">›</button>
+        <button type="button" id="month-prev"
+          class="button button-light" aria-label="이전 달">‹</button>
+        <button type="button" id="month-today"
+          class="button button-light">오늘</button>
+        <button type="button" id="month-next"
+          class="button button-light" aria-label="다음 달">›</button>
       </div>
       <h3 id="month-title"></h3>
     </div>
@@ -206,21 +273,36 @@ function renderCalendarShell() {
       <span>목</span><span>금</span><span>토</span>
     </div>
     <div id="month-grid" class="month-grid"></div>
-    <p class="calendar-hint">날짜를 누르면 일정을 추가할 수 있어요. 기존 일정을 누르면 수정하거나 삭제할 수 있어요.</p>
+    <p class="calendar-hint">
+      날짜를 누르면 일정을 추가할 수 있어요.
+      기존 일정을 누르면 수정하거나 삭제할 수 있어요.
+    </p>
   `;
 
   $("month-prev").addEventListener("click", () => {
-    displayedMonth = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() - 1, 1);
+    displayedMonth = new Date(
+      displayedMonth.getFullYear(),
+      displayedMonth.getMonth() - 1,
+      1
+    );
     loadMonthEvents();
   });
 
   $("month-next").addEventListener("click", () => {
-    displayedMonth = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() + 1, 1);
+    displayedMonth = new Date(
+      displayedMonth.getFullYear(),
+      displayedMonth.getMonth() + 1,
+      1
+    );
     loadMonthEvents();
   });
 
   $("month-today").addEventListener("click", () => {
-    displayedMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    displayedMonth = new Date(
+      new Date().getFullYear(),
+      new Date().getMonth(),
+      1
+    );
     loadMonthEvents();
   });
 
@@ -237,19 +319,39 @@ function renderCalendar() {
 
   grid.replaceChildren();
 
-  const firstDay = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), 1);
-  const lastDay = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() + 1, 0);
+  const firstDay = new Date(
+    displayedMonth.getFullYear(),
+    displayedMonth.getMonth(),
+    1
+  );
+
+  const lastDay = new Date(
+    displayedMonth.getFullYear(),
+    displayedMonth.getMonth() + 1,
+    0
+  );
+
   const today = dateKey(new Date());
-  const cellCount = Math.ceil((firstDay.getDay() + lastDay.getDate()) / 7) * 7;
+  const cellCount =
+    Math.ceil((firstDay.getDay() + lastDay.getDate()) / 7) * 7;
 
   for (let i = 0; i < cellCount; i++) {
     const dayNumber = i - firstDay.getDay() + 1;
-    const cellDate = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), dayNumber);
-    const inMonth = cellDate.getMonth() === displayedMonth.getMonth();
-    const key = dateKey(cellDate);
 
+    const cellDate = new Date(
+      displayedMonth.getFullYear(),
+      displayedMonth.getMonth(),
+      dayNumber
+    );
+
+    const inMonth =
+      cellDate.getMonth() === displayedMonth.getMonth();
+
+    const key = dateKey(cellDate);
     const cell = document.createElement("div");
+
     cell.className = "month-cell";
+
     if (!inMonth) cell.classList.add("outside-month");
     if (key === today) cell.classList.add("today-cell");
 
@@ -259,7 +361,10 @@ function renderCalendar() {
     addButton.textContent = String(cellDate.getDate());
     addButton.disabled = !inMonth;
     addButton.setAttribute("aria-label", `${key} 일정 추가`);
-    addButton.addEventListener("click", () => openEventEditor(null, key));
+    addButton.addEventListener("click", () => {
+      openEventEditor(null, key);
+    });
+
     cell.appendChild(addButton);
 
     events
@@ -268,10 +373,15 @@ function renderCalendar() {
         const eventButton = document.createElement("button");
         eventButton.type = "button";
         eventButton.className = "month-event";
+
         eventButton.textContent =
           `${eventTimeLabel(event)}${eventTimeLabel(event) ? " " : ""}${event.summary || "제목 없는 일정"}`;
+
         eventButton.title = "눌러서 일정 수정";
-        eventButton.addEventListener("click", () => openEventEditor(event));
+        eventButton.addEventListener("click", () => {
+          openEventEditor(event);
+        });
+
         cell.appendChild(eventButton);
       });
 
@@ -281,7 +391,10 @@ function renderCalendar() {
       addLink.className = "day-add";
       addLink.textContent = "+";
       addLink.title = "일정 추가";
-      addLink.addEventListener("click", () => openEventEditor(null, key));
+      addLink.addEventListener("click", () => {
+        openEventEditor(null, key);
+      });
+
       cell.appendChild(addLink);
     }
 
@@ -315,31 +428,42 @@ function openEventEditor(event = null, date = dateKey(new Date())) {
 
   const panel = document.createElement("form");
   panel.className = "calendar-editor";
+
   panel.innerHTML = `
     <div class="editor-heading">
       <h3>${event ? "일정 수정" : "새 일정 추가"}</h3>
-      <button type="button" id="editor-close" class="button button-light">닫기</button>
+      <button type="button" id="editor-close"
+        class="button button-light">닫기</button>
     </div>
     <label>일정 제목
-      <input id="editor-title" required maxlength="200" placeholder="예: 가족 외식">
+      <input id="editor-title" required maxlength="200"
+        placeholder="예: 가족 외식">
     </label>
     <label class="all-day-label">
-      <input id="editor-all-day" type="checkbox" ${isAllDay ? "checked" : ""}>
+      <input id="editor-all-day" type="checkbox"
+        ${isAllDay ? "checked" : ""}>
       종일 일정
     </label>
     <label>시작
-      <input id="editor-start" type="datetime-local" required value="${startDate}">
+      <input id="editor-start" type="datetime-local"
+        required value="${startDate}">
     </label>
     <label>종료
-      <input id="editor-end" type="datetime-local" required value="${endDate}">
+      <input id="editor-end" type="datetime-local"
+        required value="${endDate}">
     </label>
     <label>메모
-      <textarea id="editor-description" rows="3" maxlength="2000"></textarea>
+      <textarea id="editor-description" rows="3"
+        maxlength="2000"></textarea>
     </label>
     <p id="editor-error" class="form-message" role="status"></p>
     <div class="editor-actions">
-      ${event ? '<button type="button" id="editor-delete" class="button button-light">일정 삭제</button>' : ""}
-      <button type="submit" class="button button-primary">${event ? "변경 사항 저장" : "일정 등록"}</button>
+      ${event
+        ? '<button type="button" id="editor-delete" class="button button-light">일정 삭제</button>'
+        : ""}
+      <button type="submit" class="button button-primary">
+        ${event ? "변경 사항 저장" : "일정 등록"}
+      </button>
     </div>
   `;
 
@@ -350,22 +474,29 @@ function openEventEditor(event = null, date = dateKey(new Date())) {
   $("editor-description").value = event?.description || "";
 
   const close = () => overlay.remove();
+
   $("editor-close").addEventListener("click", close);
+
   overlay.addEventListener("click", e => {
     if (e.target === overlay) close();
   });
 
   $("editor-all-day").addEventListener("change", e => {
     const allDay = e.target.checked;
+
     $("editor-start").type = allDay ? "date" : "datetime-local";
     $("editor-end").type = allDay ? "date" : "datetime-local";
 
     if (allDay) {
-      $("editor-start").value = $("editor-start").value.slice(0, 10);
-      $("editor-end").value = $("editor-end").value.slice(0, 10);
+      $("editor-start").value =
+        $("editor-start").value.slice(0, 10);
+      $("editor-end").value =
+        $("editor-end").value.slice(0, 10);
     } else {
-      $("editor-start").value = `${$("editor-start").value.slice(0, 10)}T09:00`;
-      $("editor-end").value = `${$("editor-end").value.slice(0, 10)}T10:00`;
+      $("editor-start").value =
+        `${$("editor-start").value.slice(0, 10)}T09:00`;
+      $("editor-end").value =
+        `${$("editor-end").value.slice(0, 10)}T10:00`;
     }
   });
 
@@ -387,7 +518,8 @@ function openEventEditor(event = null, date = dateKey(new Date())) {
     if (!summary || !startValue || !endValue) return;
 
     if (endValue <= startValue) {
-      $("editor-error").textContent = "종료 시각은 시작 시각보다 뒤여야 해요.";
+      $("editor-error").textContent =
+        "종료 시각은 시작 시각보다 뒤여야 해요.";
       return;
     }
 
@@ -400,8 +532,12 @@ function openEventEditor(event = null, date = dateKey(new Date())) {
       resource.start = { date: startValue };
       resource.end = { date: endValue };
     } else {
-      resource.start = { dateTime: parseLocalDateTime(startValue).toISOString() };
-      resource.end = { dateTime: parseLocalDateTime(endValue).toISOString() };
+      resource.start = {
+        dateTime: parseLocalDateTime(startValue).toISOString()
+      };
+      resource.end = {
+        dateTime: parseLocalDateTime(endValue).toISOString()
+      };
     }
 
     try {
@@ -423,34 +559,59 @@ function openEventEditor(event = null, date = dateKey(new Date())) {
       await loadMonthEvents();
     } catch (error) {
       console.error(error);
-      $("editor-error").textContent = "저장하지 못했어요. 캘린더 편집 권한을 확인해 주세요.";
+      $("editor-error").textContent =
+        "저장하지 못했어요. 캘린더 편집 권한을 확인해 주세요.";
     }
   });
 
   if (event) {
     $("editor-delete").addEventListener("click", async () => {
-      if (!confirm(`'${event.summary || "제목 없는 일정"}'을(를) 삭제할까요?`)) return;
+      if (
+        !confirm(
+          `'${event.summary || "제목 없는 일정"}'을(를) 삭제할까요?`
+        )
+      ) {
+        return;
+      }
 
       try {
         await gapi.client.calendar.events.delete({
           calendarId: selectedCalendar,
           eventId: event.id
         });
+
         close();
         showMessage("일정을 삭제했어요.");
         await loadMonthEvents();
       } catch (error) {
         console.error(error);
-        $("editor-error").textContent = "삭제하지 못했어요. 캘린더 편집 권한을 확인해 주세요.";
+        $("editor-error").textContent =
+          "삭제하지 못했어요. 캘린더 편집 권한을 확인해 주세요.";
       }
     });
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  $("google-connect-btn")?.addEventListener("click", connectCalendar);
-  $("google-refresh-btn")?.addEventListener("click", loadMonthEvents);
-  $("google-calendar-select")?.addEventListener("change", loadMonthEvents);
-  $("google-add-event-btn")?.addEventListener("click", () => openEventEditor());
+  $("google-connect-btn")?.addEventListener(
+    "click",
+    connectCalendar
+  );
+
+  $("google-refresh-btn")?.addEventListener(
+    "click",
+    loadMonthEvents
+  );
+
+  $("google-calendar-select")?.addEventListener(
+    "change",
+    loadMonthEvents
+  );
+
+  $("google-add-event-btn")?.addEventListener(
+    "click",
+    () => openEventEditor()
+  );
+
   initializeCalendar();
 });
