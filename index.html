@@ -92,6 +92,18 @@
           <button class="nav-item" data-kind="meal"><span>🍲</span> 식단 계획</button>
         </nav>
 
+        <div class="target-filter-panel" aria-label="대상별 필터">
+          <span class="filter-caption">누구의 기록을 볼까요?</span>
+          <div class="target-filter-buttons">
+            <button type="button" class="target-filter active" data-target-filter="all">모두 보기</button>
+            <button type="button" class="target-filter" data-target-filter="family">🏠 가족</button>
+            <button type="button" class="target-filter" data-target-filter="woong">웅</button>
+            <button type="button" class="target-filter" data-target-filter="ddu">뚜</button>
+            <button type="button" class="target-filter" data-target-filter="soyul">🌷 소율</button>
+            <button type="button" class="target-filter" data-target-filter="siyul">🌱 시율</button>
+          </div>
+        </div>
+
         <div class="content-heading">
           <div><span class="eyebrow">LITTLE THINGS MATTER</span><h2 id="list-title">오늘의 가족 보드</h2></div>
           <button id="add-item-btn" class="button button-primary"><span>＋</span> <span id="add-button-label">기록 추가하기</span></button>
@@ -102,6 +114,7 @@
           <form id="item-form" class="item-form">
             <label>제목<input id="item-title" required maxlength="120" placeholder="무엇을 기록할까요?"></label>
             <label id="date-field">날짜<input id="item-date" type="date"></label>
+            <label id="item-target-field">누구의 기록인가요?<select id="item-target"><option value="family">가족</option><option value="woong">웅</option><option value="ddu">뚜</option><option value="soyul">소율</option><option value="siyul">시율</option></select></label>
             <label id="category-field">분류<select id="item-category"><option value="">선택해 주세요</option></select></label>
             <label id="quantity-field" class="hidden">수량<input id="item-quantity" maxlength="80" placeholder="예: 2개, 1팩"></label>
             <label class="wide-field">메모<textarea id="item-details" rows="3" maxlength="2000" placeholder="필요한 내용을 적어 주세요. (선택)"></textarea></label>
