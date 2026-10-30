@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f2e9">
+  <title>우리 가족의 하루</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="우리 가족의 하루 홈">
+        <span class="brand-mark">♡</span>
+        <span><strong>우리 가족의 하루</strong><small>Our Little Family Diary</small></span>
+      </a>
+      <div id="user-area" class="user-area hidden">
+        <span id="user-email" class="user-email"></span>
+        <button id="logout-btn" class="button button-light button-small">로그아웃</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="auth-view" class="auth-layout">
+        <div class="welcome-panel">
+          <span class="eyebrow">A LITTLE SPACE FOR US</span>
+          <h1>소소한 하루도<br>함께 기록해요 <span>🌿</span></h1>
+          <p>가족 일정부터 장보기, 식단, 아이들의 작은 순간까지.<br>우리 가족의 일상을 포근하게 모아두는 공간이에요.</p>
+          <div class="welcome-note"><span>☕</span> 오늘도 우리답게, 천천히.</div>
+        </div>
+        <div class="panel auth-panel">
+          <div class="tab-switch">
+            <button class="switch active" data-auth-mode="login">로그인</button>
+            <button class="switch" data-auth-mode="signup">회원가입</button>
+          </div>
+          <form id="auth-form">
+            <label>이메일<input id="auth-email" type="email" autocomplete="email" required placeholder="family@example.com"></label>
+            <label>비밀번호<input id="auth-password" type="password" autocomplete="current-password" minlength="6" required placeholder="6자 이상 입력해 주세요"></label>
+            <button id="auth-submit" class="button button-primary full-width" type="submit">로그인하기</button>
+            <p id="auth-message" class="form-message" role="status"></p>
+          </form>
+          <p class="fine-print">가족 정보는 로그인한 가족 구성원만 볼 수 있도록 설정해야 해요. 처음에는 가족 중 한 명이 가입하고 가족 공간을 만든 뒤, 다른 구성원은 초대 코드로 참여할 수 있어요.</p>
+        </div>
+      </section>
+
+      <section id="family-setup-view" class="panel setup-panel hidden">
+        <span class="eyebrow">WELCOME TO YOUR FAMILY SPACE</span>
+        <h1>가족 공간을 만들어 볼까요?</h1>
+        <p>가족 공간은 일정과 기록을 함께 보관하는 비공개 공간이에요.</p>
+        <div class="setup-grid">
+          <form id="create-family-form" class="setup-card">
+            <div class="setup-icon sage">🏡</div>
+            <h2>새 가족 공간 만들기</h2>
+            <p>가족 공간을 처음 만드는 경우 선택해 주세요.</p>
+            <label>가족 공간 이름<input id="family-name" required maxlength="60" placeholder="예: 우리 집"></label>
+            <button class="button button-primary full-width" type="submit">가족 공간 만들기</button>
+          </form>
+          <form id="join-family-form" class="setup-card">
+            <div class="setup-icon peach">🤝</div>
+            <h2>초대 코드로 참여하기</h2>
+            <p>가족이 만든 공간의 초대 코드를 입력해요.</p>
+            <label>초대 코드<input id="invite-code" required maxlength="12" placeholder="초대 코드 입력" autocapitalize="characters"></label>
+            <button class="button button-secondary full-width" type="submit">가족 공간 참여하기</button>
+          </form>
+        </div>
+        <p id="setup-message" class="form-message" role="status"></p>
+      </section>
+
+      <section id="app-view" class="hidden">
+        <div class="hero-card">
+          <div>
+            <span class="eyebrow">OUR FAMILY, OUR LITTLE MOMENTS</span>
+            <h1 id="greeting-title">우리 가족의 하루 <span>🌷</span></h1>
+            <p id="today-label">오늘의 일상을 차곡차곡 모아봐요.</p>
+          </div>
+          <div class="family-badge"><span>🏠</span><span><small>함께 쓰는 공간</small><strong id="family-name-display">우리 가족</strong></span></div>
+        </div>
+
+        <div class="summary-grid">
+          <article class="summary-card summary-sage"><span class="summary-icon">📅</span><div><small>예정된 일정</small><strong id="count-events">0</strong></div></article>
+          <article class="summary-card summary-peach"><span class="summary-icon">🧺</span><div><small>남은 할 일</small><strong id="count-tasks">0</strong></div></article>
+          <article class="summary-card summary-yellow"><span class="summary-icon">🛒</span><div><small>장보기 목록</small><strong id="count-shopping">0</strong></div></article>
+          <article class="summary-card summary-lilac"><span class="summary-icon">📖</span><div><small>가족 기록</small><strong id="count-childcare">0</strong></div></article>
+        </div>
+
+        <nav class="section-nav" aria-label="가족 관리 메뉴">
+          <button class="nav-item active" data-kind="all"><span>☀️</span> 한눈에 보기</button>
+          <button class="nav-item" data-kind="event"><span>📅</span> 가족 일정</button>
+          <button class="nav-item" data-kind="task"><span>🧹</span> 할 일</button>
+          <button class="nav-item" data-kind="shopping"><span>🛒</span> 장보기</button>
+          <button class="nav-item" data-kind="childcare"><span>🌱</span> 육아 기록</button>
+          <button class="nav-item" data-kind="meal"><span>🍲</span> 식단 계획</button>
+        </nav>
+
+        <div class="content-heading">
+          <div><span class="eyebrow">LITTLE THINGS MATTER</span><h2 id="list-title">오늘의 가족 보드</h2></div>
+          <button id="add-item-btn" class="button button-primary"><span>＋</span> <span id="add-button-label">기록 추가하기</span></button>
+        </div>
+
+        <div id="add-form-wrap" class="panel add-panel hidden">
+          <div class="form-heading"><h3 id="form-title">새 기록</h3><button id="cancel-add-btn" class="icon-button" aria-label="닫기">✕</button></div>
+          <form id="item-form" class="item-form">
+            <label>제목<input id="item-title" required maxlength="120" placeholder="무엇을 기록할까요?"></label>
+            <label id="date-field">날짜<input id="item-date" type="date"></label>
+            <label id="category-field">분류<select id="item-category"><option value="">선택해 주세요</option></select></label>
+            <label id="quantity-field" class="hidden">수량<input id="item-quantity" maxlength="80" placeholder="예: 2개, 1팩"></label>
+            <label class="wide-field">메모<textarea id="item-details" rows="3" maxlength="2000" placeholder="필요한 내용을 적어 주세요. (선택)"></textarea></label>
+            <div class="form-actions wide-field"><button type="button" id="cancel-add-btn-bottom" class="button button-light">취소</button><button type="submit" class="button button-primary">저장하기</button></div>
+          </form>
+          <p id="item-message" class="form-message" role="status"></p>
+        </div>
+
+        <div id="loading-state" class="panel empty-state"><div class="empty-illustration">🌼</div><h3>가족 공간을 불러오는 중이에요</h3><p>잠시만 기다려 주세요.</p></div>
+        <div id="items-list" class="items-grid"></div>
+        <div id="empty-state" class="panel empty-state hidden"><div class="empty-illustration">🪴</div><h3>아직 기록이 없어요</h3><p>작은 계획 하나부터 함께 채워볼까요?</p><button id="empty-add-btn" class="button button-secondary">첫 기록 추가하기</button></div>
+
+        <section class="invite-panel">
+          <div><span class="invite-icon">💌</span><div><h3>가족을 초대해 함께 사용해요</h3><p>아래 코드를 가족 구성원에게 직접 전달해 주세요.</p></div></div>
+          <div class="invite-code-row"><code id="family-invite-code">--------</code><button id="copy-invite-btn" class="button button-light button-small">코드 복사</button></div>
+        </section>
+        <p id="global-message" class="form-message" role="status"></p>
+      </section>
+    </main>
+    <footer><span>Made with ♡ for our little family</span><span>가족의 기록은 소중하게, 접근 권한은 안전하게.</span></footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
