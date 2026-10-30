@@ -70,7 +70,7 @@
         <div class="hero-card">
           <div>
             <span class="eyebrow">OUR FAMILY, OUR LITTLE MOMENTS</span>
-            <h1 id="greeting-title">우리 가족의 하루 <span>🌷</span></h1>
+            <div class="hero-title-row"><h1 id="greeting-title">우리 가족의 하루 <span>🌷</span></h1><div id="weather-widget" class="weather-widget" aria-live="polite"><span class="weather-icon">🌤️</span><span class="weather-copy"><strong>부천시 날씨 확인 중</strong><small>잠시만 기다려 주세요</small></span></div></div>
             <p id="today-label">오늘의 일상을 차곡차곡 모아봐요.</p>
           </div>
           <div class="family-badge"><span>🏠</span><span><small>함께 쓰는 공간</small><strong id="family-name-display">우리 가족</strong></span></div>
@@ -97,8 +97,8 @@
           <div class="target-filter-buttons">
             <button type="button" class="target-filter active" data-target-filter="all">모두 보기</button>
             <button type="button" class="target-filter" data-target-filter="family">🏠 가족</button>
-            <button type="button" class="target-filter" data-target-filter="woong">웅</button>
-            <button type="button" class="target-filter" data-target-filter="ddu">뚜</button>
+            <button type="button" class="target-filter" data-target-filter="woong">👨🏻 웅</button>
+            <button type="button" class="target-filter" data-target-filter="ddu">👩🏻 뚜</button>
             <button type="button" class="target-filter" data-target-filter="soyul">🌷 소율</button>
             <button type="button" class="target-filter" data-target-filter="siyul">🌱 시율</button>
           </div>
@@ -114,7 +114,7 @@
           <form id="item-form" class="item-form">
             <label>제목<input id="item-title" required maxlength="120" placeholder="무엇을 기록할까요?"></label>
             <label id="date-field">날짜<input id="item-date" type="date"></label>
-            <label id="item-target-field">누구의 기록인가요?<select id="item-target"><option value="family">가족</option><option value="woong">웅</option><option value="ddu">뚜</option><option value="soyul">소율</option><option value="siyul">시율</option></select></label>
+            <label id="item-target-field">누구의 기록인가요?<select id="item-target"><option value="family">가족</option><option value="woong">👨🏻 웅</option><option value="ddu">👩🏻 뚜</option><option value="soyul">소율</option><option value="siyul">시율</option></select></label>
             <label id="category-field">분류<select id="item-category"><option value="">선택해 주세요</option></select></label>
             <label id="quantity-field" class="hidden">수량<input id="item-quantity" maxlength="80" placeholder="예: 2개, 1팩"></label>
             <label class="wide-field">메모<textarea id="item-details" rows="3" maxlength="2000" placeholder="필요한 내용을 적어 주세요. (선택)"></textarea></label>
