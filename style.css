@@ -268,3 +268,151 @@ footer { display: flex; justify-content: space-between; gap: 16px; padding: 28px
     grid-template-columns: 1fr;
   }
 }
+
+/* Monthly Google Calendar */
+.month-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0 15px;
+}
+
+.month-toolbar h3 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.month-navigation {
+  display: flex;
+  gap: 7px;
+}
+
+.month-weekdays,
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.month-weekdays {
+  background: #f5f0e7;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 13px 13px 0 0;
+  text-align: center;
+  padding: 12px 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.month-weekdays span:first-child { color: #c16c61; }
+.month-weekdays span:last-child { color: #6785aa; }
+
+.month-grid {
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.month-cell {
+  min-width: 0;
+  min-height: 120px;
+  padding: 7px;
+  background: #fffefa;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.month-cell.outside-month { background: #f8f5ef; }
+.month-cell.outside-month .day-number { opacity: .3; }
+
+.day-number {
+  border: 0;
+  border-radius: 50%;
+  width: 29px;
+  height: 29px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  align-self: flex-start;
+}
+
+.today-cell .day-number {
+  background: var(--sage);
+  color: white;
+  font-weight: 700;
+}
+
+.month-event {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  border: 0;
+  border-radius: 5px;
+  background: #e6ede0;
+  color: #405b3d;
+  padding: 5px 6px;
+  font-size: 10px;
+}
+
+.month-event:hover { filter: brightness(.97); }
+
+.day-add {
+  border: 0;
+  background: transparent;
+  color: var(--sage-dark);
+  font-size: 12px;
+  align-self: flex-end;
+  margin-top: auto;
+}
+
+.calendar-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(38, 45, 35, .42);
+  overflow-y: auto;
+}
+
+.calendar-editor {
+  width: min(100%, 460px);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--paper);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 20px 60px #0002;
+}
+
+.editor-heading,
+.editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.editor-heading { margin-bottom: 20px; }
+.editor-heading h3 { margin: 0; }
+.editor-actions { justify-content: flex-end; flex-wrap: wrap; margin-top: 15px; }
+.all-day-label { display: flex; align-items: center; gap: 8px; }
+.all-day-label input { width: auto; margin: 0; }
+
+@media (max-width: 650px) {
+  .month-cell { min-height: 78px; padding: 3px; gap: 3px; }
+  .month-weekdays { font-size: 10px; padding: 9px 0; }
+  .day-number { width: 24px; height: 24px; font-size: 10px; }
+  .month-event { font-size: 9px; padding: 4px 3px; }
+  .day-add { font-size: 10px; }
+  .month-toolbar h3 { font-size: 18px; }
+}
