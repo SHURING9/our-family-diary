@@ -416,3 +416,65 @@ footer { display: flex; justify-content: space-between; gap: 16px; padding: 28px
   .day-add { font-size: 10px; }
   .month-toolbar h3 { font-size: 18px; }
 }
+
+/* 가족 다이어리 구글 캘린더 레이아웃 수정 */
+#google-calendar-events {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 0;
+  box-sizing: border-box;
+}
+
+/* 달력의 각 영역을 위에서 아래로 배치 */
+#google-calendar-events > .month-toolbar,
+#google-calendar-events > .month-weekdays,
+#google-calendar-events > .month-grid,
+#google-calendar-events > .calendar-hint {
+  display: grid;
+  width: 100% !important;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* 달력 상단 제목과 이동 버튼 */
+#google-calendar-events > .month-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* 요일과 날짜를 동일한 7개 열에 맞춤 */
+#google-calendar-events > .month-weekdays,
+#google-calendar-events > .month-grid {
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+}
+
+/* 날짜 칸이 달력 너비를 벗어나지 않도록 설정 */
+#google-calendar-events .month-cell {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#google-calendar-events .month-weekdays > span {
+  min-width: 0;
+  text-align: center;
+}
+
+#google-calendar-events .month-event {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 650px) {
+  #google-calendar-events .month-cell {
+    min-height: 78px;
+    padding: 3px;
+  }
+}
