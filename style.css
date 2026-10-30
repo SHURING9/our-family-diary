@@ -62,6 +62,13 @@ textarea { resize: vertical; }
 .sage { background: var(--sage-pale); } .peach { background: var(--peach); }
 .hero-card { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 34px 38px; border-radius: 24px; background: linear-gradient(115deg, #e4ebdd, #f4e8dc 90%); margin: 14px 0 20px; }
 .hero-card h1 { margin-bottom: 7px; font-family: "Gowun Dodum", sans-serif; }
+.hero-title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 18px; }
+.hero-title-row h1 { margin: 0; }
+.weather-widget { display: inline-flex; align-items: center; gap: 9px; max-width: 100%; padding: 9px 13px; border-radius: 14px; background: #fffdf8c9; border: 1px solid #ffffffc7; }
+.weather-icon { font-size: 25px; line-height: 1; }
+.weather-copy { display: flex; flex-direction: column; gap: 3px; }
+.weather-copy strong { font-size: 12px; color: var(--ink); }
+.weather-copy small { color: var(--muted); font-size: 10px; }
 .hero-card p { color: #72796b; font-size: 13px; margin-bottom: 0; }
 .family-badge { display: flex; align-items: center; gap: 10px; background: #fffdf8b8; border: 1px solid #ffffffad; border-radius: 16px; padding: 12px 15px; min-width: 150px; }
 .family-badge > span:first-child { font-size: 25px; }
