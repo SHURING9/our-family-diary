@@ -37,6 +37,7 @@ let authMode = "login";
 let currentUser = null;
 let currentFamily = null;
 let currentKind = "all";
+let currentTargetFilter = "all";
 let items = [];
 let busy = false;
 
@@ -76,6 +77,31 @@ function categoryLabel(kind, category) {
 function kindLabel(kind) {
   return ({event:"가족 일정", task:"할 일", shopping:"장보기", childcare:"육아 기록", meal:"식단"})[kind] || "기록";
 }
+const targetOptions = [
+  ["family", "가족 공통"],
+  ["soyul", "소율"],
+  ["siyul", "시율"]
+];
+function targetLabel(target) {
+  return targetOptions.find(([value]) => value === target)?.[1] || "가족 공통";
+}
+function setupTargetOptions() {
+  const select = $("item-target");
+  select.innerHTML = "";
+  targetOptions.forEach(([value, label]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    select.appendChild(option);
+  });
+  select.value = "family";
+}
+function updateTargetFilter() {
+  document.querySelectorAll("[data-target-filter]").forEach(button => {
+    button.classList.toggle("active", button.dataset.targetFilter === currentTargetFilter);
+  });
+  renderItems();
+}
 function updateAuthMode(mode) {
   authMode = mode;
   document.querySelectorAll("[data-auth-mode]").forEach(btn => btn.classList.toggle("active", btn.dataset.authMode === mode));
@@ -103,6 +129,7 @@ function openAddForm() {
   $("item-date").value = localDate();
   $("item-quantity").value = "";
   setupCategoryOptions(kind);
+  setupTargetOptions();
   $("date-field").classList.toggle("hidden", kind === "childcare");
   $("category-field").classList.toggle("hidden", kind === "childcare");
   $("quantity-field").classList.toggle("hidden", kind !== "shopping");
@@ -129,7 +156,8 @@ function updateSummary() {
 }
 function renderItems() {
   const list = $("items-list");
-  const filtered = items.filter(item => currentKind === "all" || item.kind === currentKind)
+  const filtered = items.filter(item => (currentKind === "all" || item.kind === currentKind) &&
+      (currentTargetFilter === "all" || (item.target || "family") === currentTargetFilter))
     .sort((a, b) => {
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
       if (a.date && b.date && a.date !== b.date) return a.date.localeCompare(b.date);
@@ -155,6 +183,7 @@ function renderItems() {
         ${item.details ? `<p class="item-details">${escapeHTML(item.details)}</p>` : ""}
         <div class="item-meta">
           <span class="pill">${escapeHTML(kindLabel(item.kind))}</span>
+          <span class="pill target-pill">${escapeHTML(targetLabel(item.target || "family"))}</span>
           ${item.category ? `<span class="pill">${escapeHTML(categoryLabel(item.kind, item.category) || item.category)}</span>` : ""}
           ${item.quantity ? `<span class="pill">${escapeHTML(item.quantity)}</span>` : ""}
           ${item.completed ? `<span class="pill">완료</span>` : ""}
@@ -216,6 +245,7 @@ async function addItem(event) {
     details: $("item-details").value.trim() || null,
     date: kind === "childcare" ? null : ($("item-date").value || null),
     category: $("item-category").value || null,
+    target: $("item-target").value || "family",
     quantity: kind === "shopping" ? ($("item-quantity").value.trim() || null) : null,
     completed: false
   };
@@ -293,6 +323,7 @@ function bindEvents() {
   $("create-family-form").addEventListener("submit", createFamily);
   $("join-family-form").addEventListener("submit", joinFamily);
   document.querySelectorAll(".nav-item").forEach(btn => btn.addEventListener("click", () => setCurrentKind(btn.dataset.kind)));
+  document.querySelectorAll("[data-target-filter]").forEach(btn => btn.addEventListener("click", () => { currentTargetFilter = btn.dataset.targetFilter; updateTargetFilter(); }));
   $("add-item-btn").addEventListener("click", openAddForm);
   $("empty-add-btn").addEventListener("click", openAddForm);
   $("cancel-add-btn").addEventListener("click", closeAddForm);
