@@ -78,6 +78,12 @@ textarea { resize: vertical; }
 .section-nav { display: flex; gap: 8px; overflow-x: auto; padding: 0 0 7px; margin: 0 0 28px; scrollbar-width: thin; }
 .nav-item { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; border: 1px solid #e5ddd1; background: #fffcf7; color: #7d7e71; padding: 11px 14px; border-radius: 12px; font-size: 12px; }
 .nav-item.active { background: #536c4e; border-color: #536c4e; color: white; }
+.target-filter-panel { background: #fffdf8; border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin: -9px 0 23px; }
+.filter-caption { display: block; color: #77796e; font-size: 11px; font-weight: 700; margin-bottom: 10px; }
+.target-filter-buttons { display: flex; flex-wrap: wrap; gap: 7px; }
+.target-filter { border: 1px solid #e5ddd1; background: #fffcf7; color: #7d7e71; padding: 8px 12px; border-radius: 999px; font-size: 11px; }
+.target-filter.active { background: #536c4e; border-color: #536c4e; color: white; }
+.target-pill { background: #e7ede1; color: #4c6548; }
 .content-heading { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin: 0 0 17px; }
 .content-heading .eyebrow { margin-bottom: 7px; }
 .content-heading h2 { margin-bottom: 0; }
