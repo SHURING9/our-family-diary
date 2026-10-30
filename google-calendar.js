@@ -154,7 +154,17 @@ async function connectCalendar() {
     return;
   }
 
-  tokenClient.requestAccessToken({ prompt: "consent" });
+
+async function connectCalendar() {
+  if (!googleReady) {
+    showMessage("캘린더를 준비 중이에요. 잠시 후 다시 눌러 주세요.");
+    return;
+  }
+
+  // 매번 동의 화면을 강제로 띄우지 않도록 수정
+  tokenClient.requestAccessToken();
+}
+
 }
 
 async function loadCalendars() {
