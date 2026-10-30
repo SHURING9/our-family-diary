@@ -6,7 +6,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   Publishable key: Project Settings > API Keys
   service_role / secret 키는 절대 여기에 넣지 마세요.
 */
-const SUPABASE_URL = "https://asloixxmwxrivupfarip.supabase.co/rest/v1/";
+const SUPABASE_URL = "https://asloixxmwxrivupfarip.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_ph7nw4VMizEhnd-mu8l1JQ_JptWDuA7";
 
 const configured = SUPABASE_URL.startsWith("https://") &&
