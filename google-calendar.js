@@ -2,6 +2,7 @@
 const GOOGLE_CLIENT_ID = "309562030182-jit2t0v0ae7kiugr9mganp5v5glh2eek.apps.googleusercontent.com";
 const GOOGLE_API_KEY = "AIzaSyA3EF3XnFFEBiNmp5DU5WLwribC-7Guytw";
 
+
 // 가족 공유 캘린더 하나만 고정하려면 해당 캘린더 ID를 입력하세요.
 // 비워 두면 기본(primary) 캘린더를 제외한 캘린더 목록을 보여 줍니다.
 const FAMILY_CALENDAR_ID = "846d074f08c35cbdd8732923d73d60399e9b316803cc78f74fbd87d793e4c0b6@group.calendar.google.com";
@@ -86,6 +87,8 @@ function eventTimeLabel(event) {
 async function initializeCalendar() {
   try {
     if (
+      !GOOGLE_CLIENT_ID.trim() ||
+      !GOOGLE_API_KEY.trim() ||
       GOOGLE_CLIENT_ID.startsWith("여기에_") ||
       GOOGLE_API_KEY.startsWith("여기에_") ||
       GOOGLE_CLIENT_ID.includes("기존 OAuth") ||
@@ -130,6 +133,7 @@ async function initializeCalendar() {
         $("google-calendar-controls").classList.remove("hidden");
 
         await loadCalendars();
+        await syncAllFamilyDiaryEventsToGoogleCalendar();
       }
     });
 
@@ -251,6 +255,140 @@ async function loadMonthEvents() {
     );
   }
 }
+
+// Google Calendar에 연결되어 있고, 일정 추가 권한이 있는지 확인합니다.
+function isGoogleCalendarConnected() {
+  return Boolean(
+    googleReady &&
+    selectedCalendar &&
+    window.gapi?.client?.getToken?.()?.access_token
+  );
+}
+
+// Google Calendar의 종일 일정 종료일은 시작일의 다음 날로 설정합니다.
+function nextDateISO(dateString) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const next = new Date(Date.UTC(year, month - 1, day + 1));
+  return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}-${String(next.getUTCDate()).padStart(2, "0")}`;
+}
+
+/*
+ * 웹페이지의 '가족 일정' 항목만 동기화합니다.
+ * 대상(가족/웅/뚜/소율/시율)은 웹페이지에서만 구분하고,
+ * Google Calendar에는 제목과 메모만 기록합니다.
+ * Google 이벤트의 private extended property에 Supabase 항목 ID를 저장해 중복 생성을 막습니다.
+ */
+async function syncFamilyDiaryItemToGoogleCalendar(item) {
+  if (!item || item.kind !== "event") {
+    return { status: "skipped" };
+  }
+
+  if (!item.date) {
+    return { status: "missing_date" };
+  }
+
+  if (!isGoogleCalendarConnected()) {
+    return { status: "not_connected" };
+  }
+
+  try {
+    const existingResponse = await gapi.client.calendar.events.list({
+      calendarId: selectedCalendar,
+      privateExtendedProperty: [
+        `familyDiaryItemId=${item.id}`,
+        `familyDiaryFamilyId=${item.family_id}`
+      ],
+      maxResults: 1,
+      showDeleted: false
+    });
+
+    const existing = existingResponse.result.items || [];
+
+    if (existing.length) {
+      return {
+        status: "already_exists",
+        eventId: existing[0].id
+      };
+    }
+
+    const resource = {
+      summary: item.title || "제목 없는 일정",
+      description: item.details || "",
+      start: { date: item.date },
+      end: { date: nextDateISO(item.date) },
+      extendedProperties: {
+        private: {
+          familyDiaryItemId: String(item.id),
+          familyDiaryFamilyId: String(item.family_id)
+        }
+      }
+    };
+
+    const response = await gapi.client.calendar.events.insert({
+      calendarId: selectedCalendar,
+      resource
+    });
+
+    return {
+      status: "synced",
+      eventId: response.result?.id
+    };
+  } catch (error) {
+    console.error("Google Calendar 자동 업로드 실패:", error);
+    return { status: "failed", error };
+  }
+}
+
+// 구글 계정 연결 시 웹페이지에 이미 저장된 일정도 한 번에 동기화합니다.
+async function syncAllFamilyDiaryEventsToGoogleCalendar() {
+  if (!isGoogleCalendarConnected()) return;
+
+  const getItems = window.getFamilyDiaryItemsForGoogleSync;
+  if (typeof getItems !== "function") return;
+
+  const websiteEvents = (getItems() || []).filter(
+    item => item.kind === "event"
+  );
+
+  let synced = 0;
+  let existing = 0;
+  let missingDate = 0;
+  let failed = 0;
+
+  for (const item of websiteEvents) {
+    if (!item.date) {
+      missingDate++;
+      continue;
+    }
+
+    const result = await syncFamilyDiaryItemToGoogleCalendar(item);
+
+    if (result.status === "synced") synced++;
+    else if (result.status === "already_exists") existing++;
+    else if (result.status === "failed") failed++;
+  }
+
+  await loadMonthEvents();
+
+  const parts = [
+    `웹 일정 동기화 완료: 새로 업로드 ${synced}건`,
+    `이미 등록 ${existing}건`
+  ];
+
+  if (missingDate) {
+    parts.push(`날짜 미입력으로 제외 ${missingDate}건`);
+  }
+
+  if (failed) {
+    parts.push(`업로드 실패 ${failed}건`);
+  }
+
+  showMessage(parts.join(" · "), failed > 0);
+}
+
+// app.js에서 새 일정을 저장한 뒤 호출할 수 있도록 함수를 공개합니다.
+window.syncFamilyDiaryItemToGoogleCalendar =
+  syncFamilyDiaryItemToGoogleCalendar;
 
 function renderCalendarShell() {
   const container = $("google-calendar-events");
