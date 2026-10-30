@@ -41,6 +41,31 @@ let currentTargetFilter = "all";
 let items = [];
 let busy = false;
 
+const weatherDescriptions = {
+  0: ["☀️", "맑음"], 1: ["🌤️", "대체로 맑음"], 2: ["⛅", "구름 조금"], 3: ["☁️", "흐림"],
+  45: ["🌫️", "안개"], 48: ["🌫️", "안개"], 51: ["🌦️", "이슬비"], 53: ["🌦️", "이슬비"], 55: ["🌧️", "이슬비"],
+  56: ["🌧️", "어는 이슬비"], 57: ["🌧️", "어는 이슬비"], 61: ["🌦️", "약한 비"], 63: ["🌧️", "비"], 65: ["🌧️", "강한 비"],
+  66: ["🌧️", "어는 비"], 67: ["🌧️", "강한 어는 비"], 71: ["🌨️", "약한 눈"], 73: ["❄️", "눈"], 75: ["❄️", "많은 눈"],
+  77: ["🌨️", "싸락눈"], 80: ["🌦️", "소나기"], 81: ["🌧️", "소나기"], 82: ["⛈️", "강한 소나기"],
+  85: ["🌨️", "눈 소나기"], 86: ["❄️", "강한 눈 소나기"], 95: ["⛈️", "뇌우"], 96: ["⛈️", "우박 동반 뇌우"], 99: ["⛈️", "강한 뇌우"]
+};
+async function loadBucheonWeather() {
+  const widget = $("weather-widget");
+  if (!widget) return;
+  try {
+    const url = "https://api.open-meteo.com/v1/forecast?latitude=37.5034&longitude=126.7660&current=temperature_2m,apparent_temperature,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FSeoul&forecast_days=1";
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("날씨 정보를 불러오지 못했어요.");
+    const data = await response.json();
+    const current = data.current;
+    const daily = data.daily;
+    const [icon, description] = weatherDescriptions[current.weather_code] || ["🌤️", "날씨 정보"];
+    widget.innerHTML = `<span class="weather-icon">${icon}</span><span class="weather-copy"><strong>부천시 ${Math.round(current.temperature_2m)}° · ${description}</strong><small>체감 ${Math.round(current.apparent_temperature)}° · 최고 ${Math.round(daily.temperature_2m_max[0])}° / 최저 ${Math.round(daily.temperature_2m_min[0])}°</small></span>`;
+  } catch (error) {
+    widget.innerHTML = '<span class="weather-icon">🌦️</span><span class="weather-copy"><strong>부천시 날씨</strong><small>날씨 정보를 잠시 불러올 수 없어요</small></span>';
+  }
+}
+
 function showView(id) {
   views.forEach(view => $(view).classList.toggle("hidden", view !== id));
 }
@@ -79,8 +104,8 @@ function kindLabel(kind) {
 }
 const targetOptions = [
   ["family", "가족"],
-  ["woong", "웅"],
-  ["ddu", "뚜"],
+  ["woong", "👨🏻 웅"],
+  ["ddu", "👩🏻 뚜"],
   ["soyul", "소율"],
   ["siyul", "시율"]
 ];
@@ -341,6 +366,8 @@ function bindEvents() {
 }
 
 bindEvents();
+loadBucheonWeather();
+setInterval(loadBucheonWeather, 30 * 60 * 1000);
 if (!configured) {
   showView("auth-view");
   message("auth-message", "시작하려면 app.js 파일에서 Supabase URL과 Publishable key를 먼저 입력해 주세요.");
