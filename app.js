@@ -78,12 +78,14 @@ function kindLabel(kind) {
   return ({event:"가족 일정", task:"할 일", shopping:"장보기", childcare:"육아 기록", meal:"식단"})[kind] || "기록";
 }
 const targetOptions = [
-  ["family", "가족 공통"],
+  ["family", "가족"],
+  ["woong", "웅"],
+  ["ddu", "뚜"],
   ["soyul", "소율"],
   ["siyul", "시율"]
 ];
 function targetLabel(target) {
-  return targetOptions.find(([value]) => value === target)?.[1] || "가족 공통";
+  return targetOptions.find(([value]) => value === target)?.[1] || "가족";
 }
 function setupTargetOptions() {
   const select = $("item-target");
