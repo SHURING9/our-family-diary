@@ -207,6 +207,8 @@ function openAddForm() {
   $("form-title").textContent = kinds[kind].add;
   $("item-title").value = "";
   $("item-details").value = "";
+  $("item-start-time").value = "";
+  $("item-end-time").value = "";
   $("item-date").value = localDate();
   $("item-quantity").value = "";
   setupCategoryOptions(kind);
@@ -214,6 +216,7 @@ function openAddForm() {
   $("date-field").classList.toggle("hidden", kind === "childcare");
   $("category-field").classList.toggle("hidden", kind === "childcare");
   $("quantity-field").classList.toggle("hidden", kind !== "shopping");
+  $("time-fields").classList.toggle("hidden", kind !== "event");
   $("add-form-wrap").classList.remove("hidden");
   message("item-message", "");
   $("item-title").focus();
