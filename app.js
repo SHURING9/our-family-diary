@@ -18,6 +18,33 @@ const configured = SUPABASE_URL.startsWith("https://") &&
 const supabase = configured ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
 
 const $ = (id) => document.getElementById(id);
+// Google Calendar Edge Function을 로그인한 사용자 권한으로 호출
+window.callGoogleCalendarFunction = async function (
+  functionName,
+  body
+) {
+  if (!supabase) {
+    throw new Error("Supabase 연결을 확인해 주세요.");
+  }
+
+  const { data: { session }, error } =
+    await supabase.auth.getSession();
+
+  if (error) throw error;
+
+  if (!session?.access_token) {
+    throw new Error("먼저 가족 일기 사이트에 로그인해 주세요.");
+  }
+
+  const { data, error: functionError } =
+    await supabase.functions.invoke(functionName, {
+      body
+    });
+
+  if (functionError) throw functionError;
+
+  return data;
+};
 const views = ["auth-view", "family-setup-view", "app-view"];
 const kinds = {
   all: { title: "오늘의 가족 보드", add: "기록 추가하기" },
