@@ -478,3 +478,290 @@ footer { display: flex; justify-content: space-between; gap: 16px; padding: 28px
     padding: 3px;
   }
 }
+
+
+/* ===== 가족 공유 캘린더 ===== */
+
+.family-calendar {
+  width: 100%;
+  margin-top: 12px;
+  color: var(--text, #4d5148);
+}
+
+.family-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.family-calendar-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.family-calendar-header .button {
+  min-width: 42px;
+  min-height: 40px;
+  font-size: 1.35rem;
+}
+
+.family-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 1px solid #e9e5dc;
+  border-left: 1px solid #e9e5dc;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fffdf9;
+}
+
+.family-calendar-weekday {
+  padding: 12px 2px;
+  text-align: center;
+  font-size: 0.84rem;
+  font-weight: 700;
+  background: #f5f1e8;
+  border-right: 1px solid #e9e5dc;
+  border-bottom: 1px solid #e9e5dc;
+}
+
+.family-calendar-weekday:first-of-type {
+  color: #bd6d62;
+}
+
+.family-calendar-weekday:last-of-type {
+  color: #6685a8;
+}
+
+.family-calendar-day {
+  min-width: 0;
+  min-height: 112px;
+  padding: 7px;
+  background: #fffdf9;
+  border-right: 1px solid #e9e5dc;
+  border-bottom: 1px solid #e9e5dc;
+}
+
+.family-calendar-day.is-empty {
+  background: #f8f6f1;
+}
+
+.family-calendar-date {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.family-calendar-date:hover {
+  background: #eee9dd;
+}
+
+.family-calendar-day.is-today .family-calendar-date {
+  background: #71846c;
+  color: #fff;
+  font-weight: 700;
+}
+
+.family-calendar-day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.family-calendar-event {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: #e9efe4;
+  color: #43543e;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.family-calendar-event:hover {
+  background: #dbe6d3;
+}
+
+.calendar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.calendar-hint {
+  margin: 14px 0 0;
+  color: #858579;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* ===== 일정 추가 및 수정 창 ===== */
+
+.family-calendar-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  background: rgba(42, 43, 36, 0.48);
+}
+
+.family-calendar-modal-panel {
+  width: min(100%, 520px);
+  max-height: calc(100vh - 32px);
+  padding: 24px;
+  overflow-y: auto;
+  border: 1px solid #eee8dd;
+  border-radius: 20px;
+  background: #fffdf9;
+  box-shadow: 0 18px 60px rgba(36, 37, 30, 0.18);
+}
+
+.family-calendar-modal-panel h3 {
+  margin: 0 0 20px;
+  color: #4e5c48;
+  font-size: 1.3rem;
+}
+
+.family-calendar-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.family-calendar-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #55584e;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.family-calendar-form input:not([type="checkbox"]),
+.family-calendar-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #deded3;
+  border-radius: 10px;
+  background: #fff;
+  color: #42443e;
+  font: inherit;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.family-calendar-form input:focus,
+.family-calendar-form textarea:focus {
+  outline: 2px solid #a8b99d;
+  outline-offset: 1px;
+}
+
+.family-calendar-form textarea {
+  resize: vertical;
+}
+
+.family-calendar-form .family-calendar-checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+}
+
+.family-calendar-checkbox input {
+  width: 17px;
+  height: 17px;
+  accent-color: #71846c;
+}
+
+.family-calendar-date-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.family-calendar-date-fields label[hidden] {
+  display: none !important;
+}
+
+.family-calendar-modal-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.family-calendar-spacer {
+  flex: 1;
+}
+
+.family-calendar-modal-actions .button-danger {
+  border: 1px solid #e4c4be;
+  background: #fff0ed;
+  color: #a04439;
+}
+
+.family-calendar-modal-actions .button-danger:hover {
+  background: #fbe0db;
+}
+
+@media (max-width: 600px) {
+  .family-calendar-day {
+    min-height: 78px;
+    padding: 3px;
+  }
+
+  .family-calendar-weekday {
+    padding: 9px 1px;
+    font-size: 0.76rem;
+  }
+
+  .family-calendar-date {
+    width: 26px;
+    height: 26px;
+    font-size: 0.8rem;
+  }
+
+  .family-calendar-event {
+    padding: 4px;
+    font-size: 0.68rem;
+  }
+
+  .family-calendar-modal-panel {
+    padding: 19px;
+    border-radius: 16px;
+  }
+
+  .family-calendar-date-fields {
+    grid-template-columns: 1fr;
+  }
+}
