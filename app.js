@@ -391,13 +391,13 @@ async function addItem(event) {
           
 start: savedItem.start_time && savedItem.end_time
   ? {
-      dateTime: `${savedItem.date}T${savedItem.start_time}:00+09:00`,
+      dateTime: `${savedItem.date}T${savedItem.start_time.slice(0, 5)}:00+09:00`,
       timeZone: "Asia/Seoul"
     }
   : { date: savedItem.date },
 end: savedItem.start_time && savedItem.end_time
   ? {
-      dateTime: `${savedItem.date}T${savedItem.end_time}:00+09:00`,
+      dateTime: `${savedItem.date}T${savedItem.end_time.slice(0, 5)}:00+09:00`,
       timeZone: "Asia/Seoul"
     }
   : { date: nextDay }
