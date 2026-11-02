@@ -203,9 +203,9 @@ const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
             aria-label="다음 달">›</button>
         </div>
         <div class="family-calendar-grid">
-          ${weekdays.map((day) =>
-            `<div class="family-calendar-weekday">${day}</div>`
-          ).join("")}
+         ${weekdays.map((day, index) =>
+  `<div class="family-calendar-weekday${index === 0 ? " is-sunday" : index === 6 ? " is-saturday" : ""}">${day}</div>`
+).join("")}
     `;
 
     for (let index = 0; index < totalCells; index++) {
@@ -217,14 +217,17 @@ const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
         continue;
       }
 
-      const day = new Date(year, month, dayNumber);
-      const today = dateKey(day) === dateKey(new Date());
-      const dayEvents = eventsForDay(day);
+const day = new Date(year, month, dayNumber);
+const today = dateKey(day) === dateKey(new Date());
+const dayEvents = eventsForDay(day);
+const weekendClass =
+  day.getDay() === 0 ? " is-sunday" :
+  day.getDay() === 6 ? " is-saturday" : "";
 
       html += `
-        <div class="family-calendar-day${today ? " is-today" : ""}">
-          <button type="button" class="family-calendar-date"
-            data-add-date="${dateKey(day)}">${dayNumber}</button>
+        <div class="family-calendar-day${today ? " is-today" : ""}${weekendClass}">
+  <button type="button" class="family-calendar-date${weekendClass}"
+    data-add-date="${dateKey(day)}">${dayNumber}</button>
           <div class="family-calendar-day-events">
             ${dayEvents.map((event) => `
               <button type="button" class="family-calendar-event"
