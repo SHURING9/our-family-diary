@@ -358,25 +358,47 @@ async function addItem(event) {
   await loadFamily();
 
   // 웹 저장을 우선 완료합니다. Google 연결/권한 문제로 웹 기록이 사라지지 않게 합니다.
+
+  // 가족 보드에 등록한 일정을 Google 캘린더에도 저장
   if (kind === "event") {
     if (!savedItem.date) {
-      message("global-message", "웹페이지에는 저장했어요. 구글 캘린더에도 올리려면 일정 날짜를 입력해 주세요.");
-    } else if (typeof window.syncFamilyDiaryItemToGoogleCalendar === "function") {
-      const syncResult = await window.syncFamilyDiaryItemToGoogleCalendar(savedItem);
-      if (syncResult?.status === "synced") {
-        message("global-message", "일정을 저장하고 구글 캘린더에도 업로드했어요.");
-      } else if (syncResult?.status === "already_exists") {
-        message("global-message", "웹 일정은 저장되어 있고, 구글 캘린더에도 이미 등록되어 있어요.");
-      } else if (syncResult?.status === "not_connected") {
-        message("global-message", "웹페이지에는 저장했어요. 구글 계정을 연결하면 날짜가 있는 기존 일정과 새 일정이 함께 동기화돼요.");
-      } else if (syncResult?.status === "failed") {
-        message("global-message", "웹페이지에는 저장했지만 구글 캘린더 업로드는 실패했어요. 구글 연결과 캘린더 편집 권한을 확인해 주세요.", true);
-      }
-    } else {
-      message("global-message", "웹페이지에는 저장했어요. 구글 캘린더 기능을 준비한 뒤 계정을 연결해 주세요.");
+      message(
+        "global-message",
+        "가족 일기에는 저장했어요. Google 캘린더 연동을 위해 날짜를 입력해 주세요."
+      );
+      return;
+    }
+
+    try {
+      const [year, month, day] = savedItem.date.split("-").map(Number);
+      const nextDay = new Date(
+        Date.UTC(year, month - 1, day + 1)
+      ).toISOString().slice(0, 10);
+
+      await window.callGoogleCalendarFunction(
+        "google-calendar-api",
+        {
+          action: "save",
+          summary: savedItem.title,
+          description: savedItem.details || "",
+          start: { date: savedItem.date },
+          end: { date: nextDay }
+        }
+      );
+
+      message(
+        "global-message",
+        "가족 일기와 Google 캘린더에 일정을 저장했어요."
+      );
+    } catch (error) {
+      console.error("Google 캘린더 동기화 오류:", error);
+      message(
+        "global-message",
+        "가족 일기에는 저장했지만 Google 캘린더 저장에 실패했어요. 오류를 확인해 주세요.",
+        true
+      );
     }
   }
-}
 
 async function toggleItem(id) {
   const item = items.find(x => x.id === id);
