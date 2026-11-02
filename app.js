@@ -410,11 +410,19 @@ if (!googleEventId) {
   throw new Error("Google 일정 ID를 받지 못했습니다.");
 }
 
-const { error: updateError } = await supabase
+
+const { data: updatedItem, error: updateError } = await supabase
   .from("family_items")
   .update({ google_event_id: googleEventId })
-  .eq("id", savedItem.id);
+  .eq("id", savedItem.id)
+  .select("google_event_id")
+  .single();
 
 if (updateError) throw updateError;
+
+if (!updatedItem?.google_event_id) {
+  throw new Error("Google 일정 ID가 데이터베이스에 저장되지 않았습니다. Supabase 수정 권한을 확인해 주세요.");
+}
+
 
 message("global-message", "가족 일기와 Google 캘린더에 일정을 저장했어요.");
