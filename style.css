@@ -765,3 +765,15 @@ footer { display: flex; justify-content: space-between; gap: 16px; padding: 28px
     grid-template-columns: 1fr;
   }
 }
+
+/* 일요일: 요일 글자와 날짜 숫자 */
+.family-calendar-weekday.is-sunday,
+.family-calendar-date.is-sunday {
+  color: #d93025;
+}
+
+/* 토요일: 요일 글자와 날짜 숫자 */
+.family-calendar-weekday.is-saturday,
+.family-calendar-date.is-saturday {
+  color: #1a73e8;
+}
