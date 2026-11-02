@@ -141,6 +141,18 @@
           <form id="item-form" class="item-form">
             <label>제목<input id="item-title" required maxlength="120" placeholder="무엇을 기록할까요?"></label>
             <label id="date-field">날짜<input id="item-date" type="date"></label>
+            
+<div id="time-fields" class="time-fields hidden">
+  <label>
+    시작 시간
+    <input id="item-start-time" type="time">
+  </label>
+  <label>
+    종료 시간
+    <input id="item-end-time" type="time">
+  </label>
+</div>
+
             <label id="item-target-field">누구의 기록인가요?<select id="item-target"><option value="family">가족</option><option value="woong">👨🏻 웅</option><option value="ddu">👩🏻 뚜</option><option value="soyul">소율</option><option value="siyul">시율</option></select></label>
             <label id="category-field">분류<select id="item-category"><option value="">선택해 주세요</option></select></label>
             <label id="quantity-field" class="hidden">수량<input id="item-quantity" maxlength="80" placeholder="예: 2개, 1팩"></label>
