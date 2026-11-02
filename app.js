@@ -154,8 +154,8 @@ const targetOptions = [
   ["family", "가족"],
   ["woong", "👨🏻 웅"],
   ["ddu", "👩🏻 뚜"],
-  ["soyul", "소율"],
-  ["siyul", "시율"]
+  ["soyul", "👧🏻 소율"],
+  ["siyul", "👦🏻 시율"]
 ];
 
 function targetLabel(target) {
