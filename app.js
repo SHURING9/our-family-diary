@@ -339,6 +339,8 @@ async function addItem(event) {
     family_id: currentFamily.id, created_by: currentUser.id, kind, title,
     details: $("item-details").value.trim() || null,
     date: kind === "childcare" ? null : ($("item-date").value || null),
+    start_time: kind === "event" ? ($("item-start-time").value || null) : null,
+    end_time: kind === "event" ? ($("item-end-time").value || null) : null,
     category: $("item-category").value || null,
     target: $("item-target").value || "family",
     quantity: kind === "shopping" ? ($("item-quantity").value.trim() || null) : null,
