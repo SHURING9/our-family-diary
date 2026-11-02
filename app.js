@@ -399,7 +399,7 @@ async function addItem(event) {
       );
     }
   }
-
+}
 async function toggleItem(id) {
   const item = items.find(x => x.id === id);
   if (!item) return;
