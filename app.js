@@ -69,6 +69,17 @@ let currentTargetFilter = "all";
 let items = [];
 let busy = false;
 
+// 로그인 상태가 바뀌면 캘린더에 알림
+if (supabase) {
+  supabase.auth.onAuthStateChange((event, session) => {
+    window.dispatchEvent(
+      new CustomEvent("family-auth-changed", {
+        detail: { signedIn: Boolean(session) }
+      })
+    );
+  });
+}
+
 const weatherDescriptions = {
   0: ["☀️", "맑음"], 1: ["🌤️", "대체로 맑음"], 2: ["⛅", "구름 조금"], 3: ["☁️", "흐림"],
   45: ["🌫️", "안개"], 48: ["🌫️", "안개"], 51: ["🌦️", "이슬비"], 53: ["🌦️", "이슬비"], 55: ["🌧️", "이슬비"],
