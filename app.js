@@ -426,3 +426,13 @@ if (!updatedItem?.google_event_id) {
 
 
 message("global-message", "가족 일기와 Google 캘린더에 일정을 저장했어요.");
+          } catch (error) {
+      console.error("Google 캘린더 동기화 오류:", error);
+      message(
+        "global-message",
+        "가족 일기에는 저장했지만 Google 캘린더 저장에 실패했어요. 오류를 확인해 주세요.",
+        true
+      );
+    }
+  }
+}
