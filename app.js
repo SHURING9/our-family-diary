@@ -386,8 +386,20 @@ async function addItem(event) {
           action: "save",
           summary: savedItem.title,
           description: savedItem.details || "",
-          start: { date: savedItem.date },
-          end: { date: nextDay }
+          
+start: savedItem.start_time && savedItem.end_time
+  ? {
+      dateTime: `${savedItem.date}T${savedItem.start_time}:00+09:00`,
+      timeZone: "Asia/Seoul"
+    }
+  : { date: savedItem.date },
+end: savedItem.start_time && savedItem.end_time
+  ? {
+      dateTime: `${savedItem.date}T${savedItem.end_time}:00+09:00`,
+      timeZone: "Asia/Seoul"
+    }
+  : { date: nextDay }
+
         }
       );
 
