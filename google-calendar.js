@@ -187,11 +187,11 @@
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
 
-    // 월요일부터 시작하는 달력
-    const offset = (firstDay.getDay() + 6) % 7;
-    const totalCells = Math.ceil((offset + lastDay.getDate()) / 7) * 7;
+// 일요일부터 시작하는 달력
+const offset = firstDay.getDay();
+const totalCells = Math.ceil((offset + lastDay.getDate()) / 7) * 7;
 
-    const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
+const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
 
     let html = `
       <section class="family-calendar">
