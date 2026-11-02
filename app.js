@@ -267,7 +267,9 @@ function renderItems() {
           <div class="item-title ${item.completed ? "completed" : ""}">${escapeHTML(item.title)}</div>
           <button class="delete-btn" data-delete="${item.id}" aria-label="기록 삭제">×</button>
         </div>
-        ${item.date ? `<div class="item-date">${escapeHTML(prettyDate(item.date))}</div>` : ""}
+        
+${item.date ? `<div class="item-date">${escapeHTML(prettyDate(item.date))}${item.start_time && item.end_time ? ` · ${escapeHTML(item.start_time.slice(0, 5))}–${escapeHTML(item.end_time.slice(0, 5))}` : ""}</div>` : ""}
+
         ${item.details ? `<p class="item-details">${escapeHTML(item.details)}</p>` : ""}
         <div class="item-meta">
           <span class="pill">${escapeHTML(kindLabel(item.kind))}</span>
