@@ -330,109 +330,120 @@ async function refreshAuthState(session) {
   }
 }
 
+
 async function addItem(event) {
   event.preventDefault();
   if (!currentFamily) return;
+
   const kind = $("item-form").dataset.kind;
   const title = $("item-title").value.trim();
   if (!title) return;
+
   setBusy(true);
-  const payload = {
-    family_id: currentFamily.id, created_by: currentUser.id, kind, title,
-    details: $("item-details").value.trim() || null,
-    date: kind === "childcare" ? null : ($("item-date").value || null),
-    start_time: kind === "event" ? ($("item-start-time").value || null) : null,
-    end_time: kind === "event" ? ($("item-end-time").value || null) : null,
-    category: $("item-category").value || null,
-    target: $("item-target").value || "family",
-    quantity: kind === "shopping" ? ($("item-quantity").value.trim() || null) : null,
-    completed: false
-  };
 
-  const { data: savedItem, error } = await supabase
-    .from("family_items")
-    .insert(payload)
-    .select("*")
-    .single();
+  try {
+    const payload = {
+      family_id: currentFamily.id,
+      created_by: currentUser.id,
+      kind,
+      title,
+      details: $("item-details").value.trim() || null,
+      date: kind === "childcare" ? null : ($("item-date").value || null),
+      start_time: kind === "event" ? ($("item-start-time").value || null) : null,
+      end_time: kind === "event" ? ($("item-end-time").value || null) : null,
+      category: $("item-category").value || null,
+      target: $("item-target").value || "family",
+      quantity: kind === "shopping" ? ($("item-quantity").value.trim() || null) : null,
+      completed: false
+    };
 
-  setBusy(false);
-  if (error) {
-    message("item-message", "저장하지 못했어요: " + error.message, true);
-    return;
-  }
+    const { data: savedItem, error } = await supabase
+      .from("family_items")
+      .insert(payload)
+      .select("*")
+      .single();
 
-  closeAddForm();
-  await loadFamily();
+    if (error) throw error;
 
-  // 웹 저장을 우선 완료합니다. Google 연결/권한 문제로 웹 기록이 사라지지 않게 합니다.
+    closeAddForm();
+    await loadFamily();
 
-  // 가족 보드에 등록한 일정을 Google 캘린더에도 저장
-  if (kind === "event") {
-    if (!savedItem.date) {
-      message(
-        "global-message",
-        "가족 일기에는 저장했어요. Google 캘린더 연동을 위해 날짜를 입력해 주세요."
-      );
-      return;
-    }
+    if (kind === "event") {
+      if (!savedItem.date) {
+        message(
+          "global-message",
+          "가족 일기에는 저장했어요. Google 캘린더 연동을 위해 날짜를 입력해 주세요."
+        );
+        return;
+      }
 
-    try {
-      const [year, month, day] = savedItem.date.split("-").map(Number);
-      const nextDay = new Date(
-        Date.UTC(year, month - 1, day + 1)
-      ).toISOString().slice(0, 10);
+      try {
+        const [year, month, day] = savedItem.date.split("-").map(Number);
+        const nextDay = new Date(
+          Date.UTC(year, month - 1, day + 1)
+        ).toISOString().slice(0, 10);
 
-     
-const googleResult = await window.callGoogleCalendarFunction(
-  "google-calendar-api",
-  {
-    action: "save",
-    summary: savedItem.title,
-    description: savedItem.details || "",
-    start: savedItem.start_time && savedItem.end_time
-      ? {
-          dateTime: `${savedItem.date}T${savedItem.start_time.slice(0, 5)}:00+09:00`,
-          timeZone: "Asia/Seoul"
+        const googleResult = await window.callGoogleCalendarFunction(
+          "google-calendar-api",
+          {
+            action: "save",
+            summary: savedItem.title,
+            description: savedItem.details || "",
+            start: savedItem.start_time && savedItem.end_time
+              ? {
+                  dateTime: `${savedItem.date}T${savedItem.start_time.slice(0, 5)}:00+09:00`,
+                  timeZone: "Asia/Seoul"
+                }
+              : { date: savedItem.date },
+            end: savedItem.start_time && savedItem.end_time
+              ? {
+                  dateTime: `${savedItem.date}T${savedItem.end_time.slice(0, 5)}:00+09:00`,
+                  timeZone: "Asia/Seoul"
+                }
+              : { date: nextDay }
+          }
+        );
+
+        const googleEventId = googleResult?.event?.id;
+
+        if (!googleEventId) {
+          throw new Error("Google 일정 ID를 받지 못했습니다.");
         }
-      : { date: savedItem.date },
-    end: savedItem.start_time && savedItem.end_time
-      ? {
-          dateTime: `${savedItem.date}T${savedItem.end_time.slice(0, 5)}:00+09:00`,
-          timeZone: "Asia/Seoul"
+
+        const { data: updatedItem, error: updateError } = await supabase
+          .from("family_items")
+          .update({ google_event_id: googleEventId })
+          .eq("id", savedItem.id)
+          .select("google_event_id")
+          .single();
+
+        if (updateError) throw updateError;
+
+        if (!updatedItem?.google_event_id) {
+          throw new Error("Google 일정 ID가 데이터베이스에 저장되지 않았습니다.");
         }
-      : { date: nextDay }
-  }
-);
 
-const googleEventId = googleResult?.event?.id;
-
-if (!googleEventId) {
-  throw new Error("Google 일정 ID를 받지 못했습니다.");
-}
-
-
-const { data: updatedItem, error: updateError } = await supabase
-  .from("family_items")
-  .update({ google_event_id: googleEventId })
-  .eq("id", savedItem.id)
-  .select("google_event_id")
-  .single();
-
-if (updateError) throw updateError;
-
-if (!updatedItem?.google_event_id) {
-  throw new Error("Google 일정 ID가 데이터베이스에 저장되지 않았습니다. Supabase 수정 권한을 확인해 주세요.");
-}
-
-
-message("global-message", "가족 일기와 Google 캘린더에 일정을 저장했어요.");
-          } catch (error) {
-      console.error("Google 캘린더 동기화 오류:", error);
-      message(
-        "global-message",
-        "가족 일기에는 저장했지만 Google 캘린더 저장에 실패했어요. 오류를 확인해 주세요.",
-        true
-      );
+        message(
+          "global-message",
+          "가족 일기와 Google 캘린더에 일정을 저장했어요."
+        );
+      } catch (error) {
+        console.error("Google 캘린더 동기화 오류:", error);
+        message(
+          "global-message",
+          "가족 일기에는 저장했지만 Google 캘린더 저장에 실패했어요. 오류를 확인해 주세요.",
+          true
+        );
+      }
     }
+  } catch (error) {
+    console.error("기록 저장 오류:", error);
+    message(
+      "item-message",
+      "저장하지 못했어요: " + error.message,
+      true
+    );
+  } finally {
+    setBusy(false);
   }
 }
