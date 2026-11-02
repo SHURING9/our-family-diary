@@ -382,169 +382,39 @@ async function addItem(event) {
         Date.UTC(year, month - 1, day + 1)
       ).toISOString().slice(0, 10);
 
-      await window.callGoogleCalendarFunction(
-        "google-calendar-api",
-        {
-          action: "save",
-          summary: savedItem.title,
-          description: savedItem.details || "",
-          
-start: savedItem.start_time && savedItem.end_time
-  ? {
-      dateTime: `${savedItem.date}T${savedItem.start_time.slice(0, 5)}:00+09:00`,
-      timeZone: "Asia/Seoul"
-    }
-  : { date: savedItem.date },
-end: savedItem.start_time && savedItem.end_time
-  ? {
-      dateTime: `${savedItem.date}T${savedItem.end_time.slice(0, 5)}:00+09:00`,
-      timeZone: "Asia/Seoul"
-    }
-  : { date: nextDay }
-
+     
+const googleResult = await window.callGoogleCalendarFunction(
+  "google-calendar-api",
+  {
+    action: "save",
+    summary: savedItem.title,
+    description: savedItem.details || "",
+    start: savedItem.start_time && savedItem.end_time
+      ? {
+          dateTime: `${savedItem.date}T${savedItem.start_time.slice(0, 5)}:00+09:00`,
+          timeZone: "Asia/Seoul"
         }
-      );
-
-      message(
-        "global-message",
-        "가족 일기와 Google 캘린더에 일정을 저장했어요."
-      );
-    } catch (error) {
-      console.error("Google 캘린더 동기화 오류:", error);
-      message(
-        "global-message",
-        "가족 일기에는 저장했지만 Google 캘린더 저장에 실패했어요. 오류를 확인해 주세요.",
-        true
-      );
-    }
+      : { date: savedItem.date },
+    end: savedItem.start_time && savedItem.end_time
+      ? {
+          dateTime: `${savedItem.date}T${savedItem.end_time.slice(0, 5)}:00+09:00`,
+          timeZone: "Asia/Seoul"
+        }
+      : { date: nextDay }
   }
-}
-async function toggleItem(id) {
-  const item = items.find(x => x.id === id);
-  if (!item) return;
-  const { error } = await supabase.from("family_items").update({completed: !item.completed}).eq("id", id);
-  if (error) {
-    message("global-message", "상태를 바꾸지 못했어요: " + error.message, true);
-    return;
-  }
-  await loadFamily();
+);
+
+const googleEventId = googleResult?.event?.id;
+
+if (!googleEventId) {
+  throw new Error("Google 일정 ID를 받지 못했습니다.");
 }
 
-async function deleteItem(id) {
-  const item = items.find(x => x.id === id);
-  if (!item || !confirm(`"${item.title}" 기록을 삭제할까요?`)) return;
-  const { error } = await supabase.from("family_items").delete().eq("id", id);
-  if (error) {
-    message("global-message", "삭제하지 못했어요: " + error.message, true);
-    return;
-  }
-  await loadFamily();
-}
+const { error: updateError } = await supabase
+  .from("family_items")
+  .update({ google_event_id: googleEventId })
+  .eq("id", savedItem.id);
 
-async function createFamily(event) {
-  event.preventDefault();
-  if (!supabase) return;
-  const name = $("family-name").value.trim();
-  if (!name) return;
-  setBusy(true);
-  const { error } = await supabase.rpc("create_family", {p_name:name});
-  setBusy(false);
-  if (error) {
-    message("setup-message", "가족 공간을 만들지 못했어요: " + error.message, true);
-    return;
-  }
-  await loadFamily();
-}
+if (updateError) throw updateError;
 
-async function joinFamily(event) {
-  event.preventDefault();
-  if (!supabase) return;
-  const code = $("invite-code").value.trim().toUpperCase();
-  setBusy(true);
-  const { error } = await supabase.rpc("join_family", {p_invite_code:code});
-  setBusy(false);
-  if (error) {
-    message("setup-message", "참여하지 못했어요. 초대 코드를 확인해 주세요. (" + error.message + ")", true);
-    return;
-  }
-  await loadFamily();
-}
-
-async function copyInvite() {
-  const code = $("family-invite-code").textContent;
-  try {
-    await navigator.clipboard.writeText(code);
-    message("global-message", "초대 코드를 복사했어요. 가족에게 직접 전달해 주세요.");
-  } catch {
-    message("global-message", "초대 코드: " + code + " (코드를 길게 눌러 복사해 주세요)");
-  }
-}
-
-function bindEvents() {
-  document.querySelectorAll("[data-auth-mode]").forEach(btn => btn.addEventListener("click", () => updateAuthMode(btn.dataset.authMode)));
-
-  $("auth-form").addEventListener("submit", async event => {
-    event.preventDefault();
-    if (!supabase) return;
-    message("auth-message", "");
-    setBusy(true);
-    const email = $("auth-email").value.trim();
-    const password = $("auth-password").value;
-    const result = authMode === "login"
-      ? await supabase.auth.signInWithPassword({email, password})
-      : await supabase.auth.signUp({email, password});
-    setBusy(false);
-    if (result.error) {
-      message("auth-message", result.error.message, true);
-      return;
-    }
-    if (authMode === "signup" && !result.data.session) {
-      message("auth-message", "가입 확인 이메일을 보냈어요. 이메일 인증을 마친 뒤 로그인해 주세요.");
-      return;
-    }
-    if (result.data.session) await refreshAuthState(result.data.session);
-  });
-
-  $("logout-btn").addEventListener("click", async () => {
-    await supabase.auth.signOut();
-  });
-
-  $("create-family-form").addEventListener("submit", createFamily);
-  $("join-family-form").addEventListener("submit", joinFamily);
-
-  document.querySelectorAll(".nav-item").forEach(btn => btn.addEventListener("click", () => setCurrentKind(btn.dataset.kind)));
-
-  document.querySelectorAll("[data-target-filter]").forEach(btn => btn.addEventListener("click", () => {
-    currentTargetFilter = btn.dataset.targetFilter;
-    updateTargetFilter();
-  }));
-
-  $("add-item-btn").addEventListener("click", openAddForm);
-  $("empty-add-btn").addEventListener("click", openAddForm);
-  $("cancel-add-btn").addEventListener("click", closeAddForm);
-  $("cancel-add-btn-bottom").addEventListener("click", closeAddForm);
-  $("item-form").addEventListener("submit", addItem);
-
-  $("items-list").addEventListener("click", async event => {
-    const toggle = event.target.closest("[data-toggle]");
-    const remove = event.target.closest("[data-delete]");
-    if (toggle) await toggleItem(toggle.dataset.toggle);
-    if (remove) await deleteItem(remove.dataset.delete);
-  });
-
-  $("copy-invite-btn").addEventListener("click", copyInvite);
-}
-
-bindEvents();
-loadBucheonWeather();
-setInterval(loadBucheonWeather, 30 * 60 * 1000);
-
-if (!configured) {
-  showView("auth-view");
-  message("auth-message", "시작하려면 app.js 파일에서 Supabase URL과 Publishable key를 먼저 입력해 주세요.");
-} else {
-  supabase.auth.getSession().then(({data}) => refreshAuthState(data.session));
-  supabase.auth.onAuthStateChange((_event, session) => {
-    refreshAuthState(session);
-  });
-}
+message("global-message", "가족 일기와 Google 캘린더에 일정을 저장했어요.");
