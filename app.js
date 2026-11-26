@@ -468,8 +468,21 @@ function renderItems() {
     .sort((a, b) => {
       if (a.completed !== b.completed) return a.completed ? 1 : -1;
 
+      // '한눈에 보기'와 '가족 일정'은 최신 날짜가 위로
+      const newestFirst = ["all", "event"].includes(currentKind);
+
       if (a.date && b.date && a.date !== b.date) {
-        return a.date.localeCompare(b.date);
+        return newestFirst
+          ? b.date.localeCompare(a.date)
+          : a.date.localeCompare(b.date);
+      }
+
+      // 같은 날짜라면 늦은 시간이 위로
+      const aTime = a.start_time || "";
+      const bTime = b.start_time || "";
+
+      if (newestFirst && a.date && b.date && aTime !== bTime) {
+        return bTime.localeCompare(aTime);
       }
 
       if (a.date && !b.date) return -1;
