@@ -1,4 +1,3 @@
-
 (() => {
   "use strict";
 
@@ -17,6 +16,11 @@
   let events = [];
   let signedIn = false;
   let loading = false;
+  let reloadRequested = false;
+  let currentFamilyId = null;
+
+  // 한 번 열 때 보고 있는 달부터 몇 달치를 '가족 일정' 목록으로 가져올지
+  const SYNC_MONTHS = 3;
 
   const pad = (value) => String(value).padStart(2, "0");
 
@@ -142,11 +146,35 @@
     }
   }
 
+  // Google 일정을 가족 일정 목록(데이터베이스)으로 가져옴
+  async function syncToDiary(year, month) {
+    try {
+      const result = await callCalendar("sync", {
+        monthStart: new Date(year, month, 1).toISOString(),
+        monthEnd: new Date(year, month + SYNC_MONTHS, 1).toISOString(),
+      });
+
+      window.dispatchEvent(new CustomEvent("family-calendar-synced"));
+
+      const failed = result?.results?.failed;
+      return failed ? `일정 ${failed}건은 목록에 반영하지 못했어요.` : "";
+    } catch (error) {
+      console.error("캘린더 동기화 오류:", error);
+      return `가족 일정 목록에 가져오지 못했어요. ${error?.message || ""}`;
+    }
+  }
+
   async function loadMonthEvents() {
-    if (!signedIn || loading) return;
+    if (!signedIn) return;
+
+    // 불러오는 중에 다시 요청하면 끝난 뒤 한 번 더 실행
+    if (loading) {
+      reloadRequested = true;
+      return;
+    }
 
     loading = true;
-    setMessage("일정을 불러오는 중이에요.");
+    setMessage("Google 캘린더 일정을 맞추는 중이에요.");
 
     try {
       const year = displayedMonth.getFullYear();
@@ -155,14 +183,18 @@
       const monthStart = new Date(year, month, 1).toISOString();
       const monthEnd = new Date(year, month + 1, 1).toISOString();
 
+      const syncProblem = await syncToDiary(year, month);
+
       const result = await callCalendar("list", {
         monthStart,
         monthEnd,
       });
 
+      if (!signedIn) return;
+
       events = Array.isArray(result?.events) ? result.events : [];
       renderCalendar();
-      setMessage("");
+      setMessage(syncProblem, Boolean(syncProblem));
     } catch (error) {
       console.error("캘린더 조회 오류:", error);
       setMessage(
@@ -176,6 +208,11 @@
       }
     } finally {
       loading = false;
+
+      if (reloadRequested) {
+        reloadRequested = false;
+        loadMonthEvents();
+      }
     }
   }
 
@@ -504,7 +541,13 @@ const weekendClass =
   }
 
   function handleAuthChange(event) {
-    signedIn = Boolean(event.detail?.signedIn);
+    const familyId = event.detail?.signedIn ? event.detail.familyId : null;
+
+    // 같은 로그인 상태가 반복해서 전달되면 다시 불러오지 않음
+    if (familyId && familyId === currentFamilyId) return;
+
+    currentFamilyId = familyId;
+    signedIn = Boolean(familyId);
     updateControls();
 
     if (signedIn) {
@@ -538,43 +581,12 @@ const weekendClass =
     }
 
     window.addEventListener("family-auth-changed", handleAuthChange);
+    window.addEventListener("family-calendar-refresh", loadMonthEvents);
 
     updateControls();
-
-    // 초기 로그인 여부는 실제 서버 호출로 확인한다.
-    // 로그인하지 않은 경우 안내 문구를 표시하고 종료한다.
-    if (typeof window.callGoogleCalendarFunction === "function") {
-      callCalendar("list", {
-        monthStart: new Date(
-          displayedMonth.getFullYear(),
-          displayedMonth.getMonth(),
-          1
-        ).toISOString(),
-        monthEnd: new Date(
-          displayedMonth.getFullYear(),
-          displayedMonth.getMonth() + 1,
-          1
-        ).toISOString(),
-      })
-        .then((result) => {
-          signedIn = true;
-          events = Array.isArray(result?.events) ? result.events : [];
-          updateControls();
-          renderCalendar();
-          setMessage("");
-        })
-        .catch(() => {
-          // 로그인 이벤트가 발생하면 다시 조회한다.
-          signedIn = false;
-          updateControls();
-        });
-    }
   }
 
-  // 기존 페이지의 기본 레이아웃과 함께 실행
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initializeCalendar);
-  } else {
-    initializeCalendar();
-  }
+  // 이 스크립트는 화면 요소 뒤에 있으므로 바로 실행해
+  // app.js가 보내는 로그인 알림을 놓치지 않음
+  initializeCalendar();
 })();
