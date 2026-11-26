@@ -113,7 +113,14 @@ textarea { resize: vertical; }
 .item-details { font-size: 12px; color: #77796e; line-height: 1.65; margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .item-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
 .pill { background: #f1ece3; color: #7a796d; border-radius: 99px; padding: 4px 8px; font-size: 10px; }
-.delete-btn { background: transparent; border: 0; color: #b0a79a; padding: 2px 4px; font-size: 15px; }
+.item-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 4px; }
+.item-edit-btn { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #d8e1d0; border-radius: 999px; background: var(--sage-pale); color: var(--sage-dark); padding: 5px 11px; font-size: 11px; font-weight: 600; line-height: 1.3; white-space: nowrap; transition: background .15s, color .15s, border-color .15s, transform .15s; }
+.item-edit-btn::before { content: "✎"; font-size: 12px; }
+.item-edit-btn:hover { background: var(--sage); border-color: var(--sage); color: white; transform: translateY(-1px); }
+.item-edit-btn:focus-visible, .delete-btn:focus-visible { outline: 2px solid var(--sage); outline-offset: 2px; }
+.item-edit-btn:disabled { opacity: .55; cursor: wait; transform: none; }
+.delete-btn { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: transparent; border: 0; color: #b0a79a; padding: 0; font-size: 16px; transition: background .15s, color .15s; }
+.delete-btn:hover { background: var(--peach); color: var(--peach-dark); }
 .empty-state { text-align: center; padding: 38px 20px; margin: 10px 0 20px; }
 .empty-illustration { font-size: 33px; margin-bottom: 12px; }
 .empty-state p { color: var(--muted); font-size: 12px; margin-bottom: 18px; }
