@@ -1,4 +1,3 @@
-
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 // Supabase 공개 설정
@@ -33,7 +32,11 @@ window.callGoogleCalendarFunction = async function (functionName, body) {
   const { data, error: functionError } =
     await supabase.functions.invoke(functionName, { body });
 
-  if (functionError) throw functionError;
+  if (functionError) {
+    // 함수가 보낸 오류 안내 문구를 꺼내서 보여줌
+    const detail = await functionError.context?.json?.().catch(() => null);
+    throw detail?.error ? new Error(detail.error) : functionError;
+  }
   return data;
 };
 
@@ -193,6 +196,19 @@ function localDate(date = new Date()) {
     date.getTime() - date.getTimezoneOffset() * 60000
   );
   return adjusted.toISOString().slice(0, 10);
+}
+
+function shiftDate(dateString, days) {
+  const date = new Date(`${dateString}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function daysBetween(from, to) {
+  return Math.round(
+    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) /
+      86400000
+  );
 }
 
 function prettyDate(dateString) {
@@ -393,6 +409,38 @@ function setCurrentKind(kind) {
   renderItems();
 }
 
+// 구글 캘린더 영역(google-calendar.js)에 로그인 상태를 알림
+function notifyCalendarAuth() {
+  window.dispatchEvent(new CustomEvent("family-auth-changed", {
+    detail: {
+      signedIn: Boolean(currentFamily),
+      familyId: currentFamily?.id || null
+    }
+  }));
+}
+
+function refreshCalendarPanel() {
+  window.dispatchEvent(new CustomEvent("family-calendar-refresh"));
+}
+
+async function reloadItems() {
+  if (!supabase || !currentFamily) return;
+
+  const familyId = currentFamily.id;
+
+  const { data, error } = await supabase
+    .from("family_items")
+    .select("*")
+    .eq("family_id", familyId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  if (currentFamily?.id !== familyId) return;
+
+  items = data || [];
+  renderItems();
+}
+
 function updateSummary() {
   $("count-events").textContent =
     items.filter(item => item.kind === "event" && !item.completed).length;
@@ -457,7 +505,9 @@ function renderItems() {
           </div>
         </div>
         ${item.date
-          ? `<div class="item-date">${escapeHTML(prettyDate(item.date))}${item.start_time && item.end_time
+          ? `<div class="item-date">${escapeHTML(prettyDate(item.date))}${item.end_date && item.end_date > item.date
+              ? ` ~ ${escapeHTML(prettyDate(item.end_date))}`
+              : ""}${item.start_time && item.end_time
               ? ` · ${escapeHTML(item.start_time.slice(0,5))}–${escapeHTML(item.end_time.slice(0,5))}`
               : ""}</div>`
           : ""}
@@ -498,6 +548,7 @@ async function loadFamily() {
   if (!membership) {
     currentFamily = null;
     showView("family-setup-view");
+    notifyCalendarAuth();
     return;
   }
 
@@ -525,18 +576,10 @@ async function loadFamily() {
   showView("app-view");
   $("loading-state").classList.remove("hidden");
 
-  const { data, error } = await supabase
-    .from("family_items")
-    .select("*")
-    .eq("family_id", family.id)
-    .order("created_at", { ascending: false });
+  await reloadItems();
 
-  if (error) throw error;
-
-  items = data || [];
-  window.getFamilyDiaryItemsForGoogleSync = () => items;
-
-  renderItems();
+  // 목록을 먼저 보여준 뒤 Google 캘린더 동기화를 시작
+  notifyCalendarAuth();
 }
 
 async function refreshAuthState(session) {
@@ -552,6 +595,7 @@ async function refreshAuthState(session) {
     currentFamily = null;
     items = [];
     showView("auth-view");
+    notifyCalendarAuth();
     return;
   }
 
@@ -571,6 +615,10 @@ async function refreshAuthState(session) {
 function googleDatePayload(item) {
   if (!item.date) return null;
 
+  const lastDate = item.end_date && item.end_date > item.date
+    ? item.end_date
+    : item.date;
+
   if (item.start_time && item.end_time) {
     return {
       start: {
@@ -578,19 +626,15 @@ function googleDatePayload(item) {
         timeZone: "Asia/Seoul"
       },
       end: {
-        dateTime: `${item.date}T${item.end_time.slice(0, 5)}:00+09:00`,
+        dateTime: `${lastDate}T${item.end_time.slice(0, 5)}:00+09:00`,
         timeZone: "Asia/Seoul"
       }
     };
   }
 
-  const [year, month, day] = item.date.split("-").map(Number);
-  const nextDay = new Date(Date.UTC(year, month - 1, day + 1))
-    .toISOString().slice(0, 10);
-
   return {
     start: { date: item.date },
-    end: { date: nextDay }
+    end: { date: shiftDate(lastDate, 1) }
   };
 }
 
@@ -666,6 +710,13 @@ async function addItem(event) {
   try {
     const startTime = $("item-start-time").value || null;
     const endTime = $("item-end-time").value || null;
+    const date = kind === "childcare" ? null : ($("item-date").value || null);
+
+    // 며칠짜리 일정은 시작일을 바꿔도 기간을 유지
+    const endDate =
+      kind === "event" && date && existingItem?.date && existingItem.end_date
+        ? shiftDate(date, daysBetween(existingItem.date, existingItem.end_date))
+        : null;
 
     if (
       kind === "event" &&
@@ -680,6 +731,7 @@ async function addItem(event) {
       kind === "event" &&
       startTime &&
       endTime &&
+      !endDate &&
       endTime <= startTime
     ) {
       throw new Error("종료 시간은 시작 시간보다 뒤여야 해요.");
@@ -689,7 +741,7 @@ async function addItem(event) {
       kind,
       title,
       details: $("item-details").value.trim() || null,
-      date: kind === "childcare" ? null : ($("item-date").value || null),
+      date,
       start_time: kind === "event" ? startTime : null,
       end_time: kind === "event" ? endTime : null,
       category: $("item-category").value || null,
@@ -698,6 +750,9 @@ async function addItem(event) {
         ? ($("item-quantity").value.trim() || null)
         : null
     };
+
+    // 며칠짜리 일정일 때만 end_date를 보냄 (기존 값을 지워야 할 때 포함)
+    if (endDate || existingItem?.end_date) payload.end_date = endDate;
 
     let savedItem;
 
@@ -750,6 +805,7 @@ async function addItem(event) {
       try {
         await syncItemToGoogleCalendar(savedItem);
         await loadFamily();
+        refreshCalendarPanel();
 
         message(
           "global-message",
@@ -821,11 +877,13 @@ async function deleteItem(id) {
       } catch (calendarError) {
         console.error("Google 캘린더 일정 삭제 오류:", calendarError);
 
-        const proceed = confirm(
-          "Google 캘린더 일정 삭제에 실패했어요. 웹 가족 일기 기록만 삭제할까요?"
+        // 웹에서만 지우면 다음 동기화 때 다시 나타나므로 삭제를 중단
+        message(
+          "global-message",
+          "Google 캘린더에서 삭제하지 못해 기록을 그대로 두었어요. 잠시 후 다시 시도해 주세요.",
+          true
         );
-
-        if (!proceed) return;
+        return;
       }
     }
 
@@ -839,6 +897,7 @@ async function deleteItem(id) {
 
     message("global-message", "기록을 삭제했어요.");
     await loadFamily();
+    if (item.kind === "event") refreshCalendarPanel();
   } catch (error) {
     console.error("기록 삭제 오류:", error);
     message("global-message", "삭제하지 못했어요: " + error.message, true);
@@ -1048,6 +1107,12 @@ function bindEvents() {
 }
 
 bindEvents();
+
+// Google 일정을 가져온 뒤 가족 일정 목록을 다시 읽음
+window.addEventListener("family-calendar-synced", () => {
+  reloadItems().catch(error => console.error("목록 갱신 오류:", error));
+});
+
 loadBucheonWeather();
 setInterval(loadBucheonWeather, 30 * 60 * 1000);
 
@@ -1074,4 +1139,3 @@ if (!configured || !supabase) {
     queueMicrotask(() => refreshAuthState(session));
   });
 }
-
