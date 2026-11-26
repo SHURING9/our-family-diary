@@ -285,3 +285,793 @@ function updateAuthMode(mode) {
 
   message("auth-message", "");
 }
+
+
+function setupCategoryOptions(kind) {
+  const select = $("item-category");
+  if (!select) return;
+
+  select.innerHTML = '<option value="">선택해 주세요</option>';
+
+  (categoryOptions[kind] || []).forEach(([value, label]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    select.appendChild(option);
+  });
+}
+
+function prepareItemForm(kind) {
+  const form = $("item-form");
+  form.dataset.kind = kind;
+
+  setupCategoryOptions(kind);
+  setupTargetOptions();
+
+  $("date-field")?.classList.toggle("hidden", kind === "childcare");
+  $("category-field")?.classList.toggle("hidden", kind === "childcare");
+  $("quantity-field")?.classList.toggle("hidden", kind !== "shopping");
+  $("time-fields")?.classList.toggle("hidden", kind !== "event");
+  $("add-form-wrap")?.classList.remove("hidden");
+  message("item-message", "");
+}
+
+function openAddForm() {
+  if (!currentFamily) return;
+
+  const kind = currentKind === "all" ? "event" : currentKind;
+  const form = $("item-form");
+
+  form.dataset.itemId = "";
+  form.dataset.kind = kind;
+
+  $("form-title").textContent = kinds[kind].add;
+  $("item-title").value = "";
+  $("item-details").value = "";
+  $("item-start-time").value = "";
+  $("item-end-time").value = "";
+  $("item-date").value = localDate();
+  $("item-quantity").value = "";
+  $("item-category").value = "";
+  $("item-target").value = "family";
+
+  prepareItemForm(kind);
+  $("item-title").focus();
+}
+
+function openEditForm(item) {
+  if (!currentFamily || !item) return;
+
+  const form = $("item-form");
+
+  form.dataset.itemId = String(item.id);
+  form.dataset.kind = item.kind;
+
+  $("form-title").textContent = `${kindLabel(item.kind)} 수정하기`;
+  $("item-title").value = item.title || "";
+  $("item-details").value = item.details || "";
+  $("item-start-time").value = item.start_time
+    ? item.start_time.slice(0, 5)
+    : "";
+  $("item-end-time").value = item.end_time
+    ? item.end_time.slice(0, 5)
+    : "";
+  $("item-date").value = item.date || localDate();
+  $("item-quantity").value = item.quantity || "";
+
+  prepareItemForm(item.kind);
+
+  $("item-category").value = item.category || "";
+  $("item-target").value = item.target || "family";
+  $("item-title").focus();
+}
+
+function closeAddForm() {
+  $("add-form-wrap")?.classList.add("hidden");
+  $("item-form")?.reset();
+
+  if ($("item-form")) {
+    $("item-form").dataset.itemId = "";
+    $("item-form").dataset.kind = "";
+  }
+
+  message("item-message", "");
+}
+
+function setCurrentKind(kind) {
+  if (!kinds[kind]) return;
+
+  currentKind = kind;
+
+  document.querySelectorAll(".nav-item").forEach(button => {
+    button.classList.toggle("active", button.dataset.kind === kind);
+  });
+
+  $("list-title").textContent = kinds[kind].title;
+  $("add-button-label").textContent = kinds[kind].add;
+
+  renderItems();
+}
+
+function updateSummary() {
+  $("count-events").textContent =
+    items.filter(item => item.kind === "event" && !item.completed).length;
+
+  $("count-tasks").textContent =
+    items.filter(item => item.kind === "task" && !item.completed).length;
+
+  $("count-shopping").textContent =
+    items.filter(item => item.kind === "shopping" && !item.completed).length;
+
+  $("count-childcare").textContent =
+    items.filter(item => item.kind === "childcare").length;
+}
+
+function renderItems() {
+  const list = $("items-list");
+  if (!list) return;
+
+  const filtered = items
+    .filter(item =>
+      (currentKind === "all" || item.kind === currentKind) &&
+      (currentTargetFilter === "all" ||
+        (item.target || "family") === currentTargetFilter)
+    )
+    .sort((a, b) => {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1;
+
+      if (a.date && b.date && a.date !== b.date) {
+        return a.date.localeCompare(b.date);
+      }
+
+      if (a.date && !b.date) return -1;
+      if (!a.date && b.date) return 1;
+
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    });
+
+  $("loading-state")?.classList.add("hidden");
+  $("empty-state")?.classList.toggle("hidden", filtered.length !== 0);
+  list.replaceChildren();
+
+  filtered.forEach(item => {
+    const card = document.createElement("article");
+    card.className = "item-card";
+
+    const canCheck = ["task", "shopping"].includes(item.kind);
+
+    card.innerHTML = `
+      ${canCheck
+        ? `<button type="button" class="item-check ${item.completed ? "checked" : ""}"
+             aria-label="${item.completed ? "완료 취소" : "완료 처리"}"
+             data-toggle="${escapeHTML(item.id)}">${item.completed ? "✓" : ""}</button>`
+        : `<span class="summary-icon">${({event:"📅", childcare:"🌱", meal:"🍲"})[item.kind] || "♡"}</span>`}
+      <div class="item-main">
+        <div class="item-topline">
+          <div class="item-title ${item.completed ? "completed" : ""}">${escapeHTML(item.title)}</div>
+          <div class="item-actions">
+            <button type="button" class="item-edit-btn"
+              data-edit-item="${escapeHTML(item.id)}" aria-label="기록 수정">수정</button>
+            <button type="button" class="delete-btn"
+              data-delete="${escapeHTML(item.id)}" aria-label="기록 삭제">×</button>
+          </div>
+        </div>
+        ${item.date
+          ? `<div class="item-date">${escapeHTML(prettyDate(item.date))}${item.start_time && item.end_time
+              ? ` · ${escapeHTML(item.start_time.slice(0,5))}–${escapeHTML(item.end_time.slice(0,5))}`
+              : ""}</div>`
+          : ""}
+        ${item.details ? `<p class="item-details">${escapeHTML(item.details)}</p>` : ""}
+        <div class="item-meta">
+          <span class="pill">${escapeHTML(kindLabel(item.kind))}</span>
+          <span class="pill target-pill">${escapeHTML(targetLabel(item.target || "family"))}</span>
+          ${item.category
+            ? `<span class="pill">${escapeHTML(categoryLabel(item.kind, item.category) || item.category)}</span>`
+            : ""}
+          ${item.quantity ? `<span class="pill">${escapeHTML(item.quantity)}</span>` : ""}
+          ${item.completed ? `<span class="pill">완료</span>` : ""}
+        </div>
+      </div>`;
+
+    list.appendChild(card);
+  });
+
+  updateSummary();
+}
+
+
+
+async function loadFamily() {
+  if (!supabase || !currentUser) return;
+
+  message("global-message", "");
+
+  const { data: membership, error: memberError } = await supabase
+    .from("family_members")
+    .select("family_id")
+    .eq("user_id", currentUser.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (memberError) throw memberError;
+
+  if (!membership) {
+    currentFamily = null;
+    showView("family-setup-view");
+    return;
+  }
+
+  const { data: family, error: familyError } = await supabase
+    .from("families")
+    .select("id,name,invite_code")
+    .eq("id", membership.family_id)
+    .single();
+
+  if (familyError) throw familyError;
+
+  currentFamily = family;
+
+  $("family-name-display").textContent = family.name;
+  $("family-invite-code").textContent = family.invite_code;
+
+  $("today-label").textContent =
+    new Intl.DateTimeFormat("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "long"
+    }).format(new Date()) + " · 오늘의 일상을 차곡차곡 모아봐요.";
+
+  showView("app-view");
+  $("loading-state").classList.remove("hidden");
+
+  const { data, error } = await supabase
+    .from("family_items")
+    .select("*")
+    .eq("family_id", family.id)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  items = data || [];
+  window.getFamilyDiaryItemsForGoogleSync = () => items;
+
+  renderItems();
+}
+
+async function refreshAuthState(session) {
+  currentUser = session?.user || null;
+
+  $("user-area")?.classList.toggle("hidden", !currentUser);
+
+  if ($("user-email")) {
+    $("user-email").textContent = currentUser?.email || "";
+  }
+
+  if (!currentUser) {
+    currentFamily = null;
+    items = [];
+    showView("auth-view");
+    return;
+  }
+
+  try {
+    await loadFamily();
+  } catch (error) {
+    console.error("가족 정보 불러오기 오류:", error);
+    message(
+      "global-message",
+      "정보를 불러오지 못했어요. 데이터베이스 설정을 확인해 주세요. (" +
+        error.message + ")",
+      true
+    );
+  }
+}
+
+function googleDatePayload(item) {
+  if (!item.date) return null;
+
+  if (item.start_time && item.end_time) {
+    return {
+      start: {
+        dateTime: `${item.date}T${item.start_time.slice(0, 5)}:00+09:00`,
+        timeZone: "Asia/Seoul"
+      },
+      end: {
+        dateTime: `${item.date}T${item.end_time.slice(0, 5)}:00+09:00`,
+        timeZone: "Asia/Seoul"
+      }
+    };
+  }
+
+  const [year, month, day] = item.date.split("-").map(Number);
+  const nextDay = new Date(Date.UTC(year, month - 1, day + 1))
+    .toISOString().slice(0, 10);
+
+  return {
+    start: { date: item.date },
+    end: { date: nextDay }
+  };
+}
+
+async function syncItemToGoogleCalendar(item) {
+  if (!item || item.kind !== "event" || !item.date) return item;
+
+  const datePayload = googleDatePayload(item);
+
+  const googleResult = await window.callGoogleCalendarFunction(
+    "google-calendar-api",
+    {
+      action: "save",
+      eventId: item.google_event_id || undefined,
+      itemId: item.id,
+      summary: item.title,
+      description: item.details || "",
+      start: datePayload.start,
+      end: datePayload.end
+    }
+  );
+
+  const googleEventId = googleResult?.event?.id;
+
+  if (!googleEventId) {
+    throw new Error("Google 일정 ID를 받지 못했습니다.");
+  }
+
+  if (String(item.google_event_id || "") !== String(googleEventId)) {
+    const { error } = await supabase
+      .from("family_items")
+      .update({ google_event_id: googleEventId })
+      .eq("id", item.id)
+      .eq("family_id", currentFamily.id);
+
+    if (error) throw error;
+  }
+
+  return { ...item, google_event_id: googleEventId };
+}
+
+async function addItem(event) {
+  event.preventDefault();
+
+  if (!currentFamily || !currentUser || busy) return;
+
+  const form = $("item-form");
+  const kind = form.dataset.kind;
+  const editingId = form.dataset.itemId || "";
+
+  const existingItem = editingId
+    ? items.find(item => String(item.id) === String(editingId))
+    : null;
+
+  const title = $("item-title").value.trim();
+
+  if (!title) {
+    message("item-message", "제목을 입력해 주세요.", true);
+    return;
+  }
+
+  if (editingId && !existingItem) {
+    message(
+      "item-message",
+      "수정할 기록을 찾지 못했어요. 목록을 새로고침해 주세요.",
+      true
+    );
+    return;
+  }
+
+  setBusy(true);
+  message("item-message", "");
+
+  try {
+    const startTime = $("item-start-time").value || null;
+    const endTime = $("item-end-time").value || null;
+
+    if (
+      kind === "event" &&
+      ((startTime && !endTime) || (!startTime && endTime))
+    ) {
+      throw new Error(
+        "시작 시간과 종료 시간을 모두 입력하거나, 둘 다 비워 주세요."
+      );
+    }
+
+    if (
+      kind === "event" &&
+      startTime &&
+      endTime &&
+      endTime <= startTime
+    ) {
+      throw new Error("종료 시간은 시작 시간보다 뒤여야 해요.");
+    }
+
+    const payload = {
+      kind,
+      title,
+      details: $("item-details").value.trim() || null,
+      date: kind === "childcare" ? null : ($("item-date").value || null),
+      start_time: kind === "event" ? startTime : null,
+      end_time: kind === "event" ? endTime : null,
+      category: $("item-category").value || null,
+      target: $("item-target").value || "family",
+      quantity: kind === "shopping"
+        ? ($("item-quantity").value.trim() || null)
+        : null
+    };
+
+    let savedItem;
+
+    if (editingId) {
+      const { data, error } = await supabase
+        .from("family_items")
+        .update(payload)
+        .eq("id", editingId)
+        .eq("family_id", currentFamily.id)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      savedItem = data;
+    } else {
+      const { data, error } = await supabase
+        .from("family_items")
+        .insert({
+          ...payload,
+          family_id: currentFamily.id,
+          created_by: currentUser.id,
+          completed: false
+        })
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      savedItem = data;
+    }
+
+    if (existingItem) {
+      savedItem.completed = existingItem.completed;
+      savedItem.google_event_id = existingItem.google_event_id;
+    }
+
+    closeAddForm();
+    await loadFamily();
+
+    if (kind === "event") {
+      if (!savedItem.date) {
+        message(
+          "global-message",
+          editingId
+            ? "웹 가족 일기 기록은 수정했어요. Google 캘린더 동기화를 위해 날짜를 입력해 주세요."
+            : "가족 일기에는 저장했어요. Google 캘린더 연동을 위해 날짜를 입력해 주세요."
+        );
+        return;
+      }
+
+      try {
+        await syncItemToGoogleCalendar(savedItem);
+        await loadFamily();
+
+        message(
+          "global-message",
+          editingId
+            ? "가족 일기와 Google 캘린더의 일정을 수정했어요."
+            : "가족 일기와 Google 캘린더에 일정을 저장했어요."
+        );
+      } catch (calendarError) {
+        console.error("Google 캘린더 동기화 오류:", calendarError);
+
+        message(
+          "global-message",
+          editingId
+            ? "웹 가족 일기는 수정했지만 Google 캘린더 동기화에 실패했어요."
+            : "가족 일기에는 저장했지만 Google 캘린더 저장에 실패했어요.",
+          true
+        );
+      }
+    } else {
+      message(
+        "global-message",
+        editingId ? "기록을 수정했어요." : "기록을 저장했어요."
+      );
+    }
+  } catch (error) {
+    console.error("기록 저장/수정 오류:", error);
+    message("item-message", "저장하지 못했어요: " + error.message, true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function toggleItem(id) {
+  const item = items.find(x => String(x.id) === String(id));
+  if (!item || !currentFamily) return;
+
+  const { error } = await supabase
+    .from("family_items")
+    .update({ completed: !item.completed })
+    .eq("id", id)
+    .eq("family_id", currentFamily.id);
+
+  if (error) {
+    message(
+      "global-message",
+      "상태를 변경하지 못했어요: " + error.message,
+      true
+    );
+    return;
+  }
+
+  await loadFamily();
+}
+
+async function deleteItem(id) {
+  const item = items.find(x => String(x.id) === String(id));
+
+  if (!item || !confirm(`“${item.title}” 기록을 삭제할까요?`)) return;
+
+  setBusy(true);
+
+  try {
+    if (item.kind === "event" && item.google_event_id) {
+      try {
+        await window.callGoogleCalendarFunction("google-calendar-api", {
+          action: "delete",
+          eventId: item.google_event_id
+        });
+      } catch (calendarError) {
+        console.error("Google 캘린더 일정 삭제 오류:", calendarError);
+
+        const proceed = confirm(
+          "Google 캘린더 일정 삭제에 실패했어요. 웹 가족 일기 기록만 삭제할까요?"
+        );
+
+        if (!proceed) return;
+      }
+    }
+
+    const { error } = await supabase
+      .from("family_items")
+      .delete()
+      .eq("id", id)
+      .eq("family_id", currentFamily.id);
+
+    if (error) throw error;
+
+    message("global-message", "기록을 삭제했어요.");
+    await loadFamily();
+  } catch (error) {
+    console.error("기록 삭제 오류:", error);
+    message("global-message", "삭제하지 못했어요: " + error.message, true);
+  } finally {
+    setBusy(false);
+  }
+}
+
+
+async function createFamily(event) {
+  event.preventDefault();
+
+  if (!supabase || !currentUser || busy) return;
+
+  const name = $("family-name").value.trim();
+  if (!name) return;
+
+  setBusy(true);
+  message("setup-message", "");
+
+  try {
+    const { error } = await supabase.rpc("create_family", {
+      p_name: name
+    });
+
+    if (error) throw error;
+
+    await loadFamily();
+    message("setup-message", "가족 공간을 만들었어요!");
+  } catch (error) {
+    console.error("가족 공간 생성 오류:", error);
+    message(
+      "setup-message",
+      "가족 공간을 만들지 못했어요: " + error.message,
+      true
+    );
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function joinFamily(event) {
+  event.preventDefault();
+
+  if (!supabase || !currentUser || busy) return;
+
+  const inviteCode = $("invite-code").value.trim().toUpperCase();
+  if (!inviteCode) return;
+
+  setBusy(true);
+  message("setup-message", "");
+
+  try {
+    const { error } = await supabase.rpc("join_family", {
+      p_invite_code: inviteCode
+    });
+
+    if (error) throw error;
+
+    await loadFamily();
+    message("setup-message", "가족 공간에 참여했어요!");
+  } catch (error) {
+    console.error("가족 공간 참여 오류:", error);
+    message(
+      "setup-message",
+      "참여하지 못했어요: " + error.message,
+      true
+    );
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function copyInviteCode() {
+  const code = $("family-invite-code")?.textContent?.trim();
+  if (!code || code === "--------") return;
+
+  try {
+    await navigator.clipboard.writeText(code);
+    message("global-message", "초대 코드를 복사했어요.");
+  } catch {
+    window.prompt("초대 코드를 복사해 주세요.", code);
+  }
+}
+
+// 모든 버튼과 폼의 이벤트 연결
+function bindEvents() {
+  $("auth-form")?.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (!supabase) {
+      message("auth-message", "Supabase 설정을 확인해 주세요.", true);
+      return;
+    }
+
+    if (busy) return;
+
+    message("auth-message", "");
+    setBusy(true);
+
+    try {
+      const email = $("auth-email").value.trim();
+      const password = $("auth-password").value;
+
+      const result = authMode === "login"
+        ? await supabase.auth.signInWithPassword({ email, password })
+        : await supabase.auth.signUp({ email, password });
+
+      if (result.error) throw result.error;
+
+      if (authMode === "signup" && !result.data.session) {
+        message(
+          "auth-message",
+          "가입 확인 이메일을 보냈어요. 이메일 인증을 마친 뒤 로그인해 주세요."
+        );
+        return;
+      }
+
+      if (result.data.session) {
+        await refreshAuthState(result.data.session);
+      }
+    } catch (error) {
+      console.error("로그인/회원가입 오류:", error);
+      message(
+        "auth-message",
+        error.message || "로그인하지 못했어요. 이메일과 비밀번호를 확인해 주세요.",
+        true
+      );
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  document.querySelectorAll("[data-auth-mode]").forEach(button => {
+    button.addEventListener("click", () => {
+      updateAuthMode(button.dataset.authMode);
+    });
+  });
+
+  $("logout-btn")?.addEventListener("click", async () => {
+    if (!supabase) return;
+
+    setBusy(true);
+
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      await refreshAuthState(null);
+    } catch (error) {
+      message(
+        "global-message",
+        "로그아웃하지 못했어요: " + error.message,
+        true
+      );
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  $("create-family-form")?.addEventListener("submit", createFamily);
+  $("join-family-form")?.addEventListener("submit", joinFamily);
+
+  document.querySelectorAll(".nav-item[data-kind]").forEach(button => {
+    button.addEventListener("click", () => {
+      setCurrentKind(button.dataset.kind);
+    });
+  });
+
+  document.querySelectorAll("[data-target-filter]").forEach(button => {
+    button.addEventListener("click", () => {
+      currentTargetFilter = button.dataset.targetFilter;
+      updateTargetFilter();
+    });
+  });
+
+  $("add-item-btn")?.addEventListener("click", openAddForm);
+  $("empty-add-btn")?.addEventListener("click", openAddForm);
+  $("cancel-add-btn")?.addEventListener("click", closeAddForm);
+  $("cancel-add-btn-bottom")?.addEventListener("click", closeAddForm);
+  $("item-form")?.addEventListener("submit", addItem);
+
+  $("items-list")?.addEventListener("click", async event => {
+    const toggleButton = event.target.closest("[data-toggle]");
+    const editButton = event.target.closest("[data-edit-item]");
+    const deleteButton = event.target.closest("[data-delete]");
+
+    if (toggleButton) {
+      await toggleItem(toggleButton.dataset.toggle);
+      return;
+    }
+
+    if (editButton) {
+      const item = items.find(
+        x => String(x.id) === String(editButton.dataset.editItem)
+      );
+
+      if (item) openEditForm(item);
+      return;
+    }
+
+    if (deleteButton) {
+      await deleteItem(deleteButton.dataset.delete);
+    }
+  });
+
+  $("copy-invite-btn")?.addEventListener("click", copyInviteCode);
+}
+
+bindEvents();
+loadBucheonWeather();
+setInterval(loadBucheonWeather, 30 * 60 * 1000);
+
+// 최초 로그인 상태 확인 및 로그인 상태 변경 감지
+if (!configured || !supabase) {
+  showView("auth-view");
+  message("auth-message", "Supabase 설정을 확인해 주세요.", true);
+} else {
+  supabase.auth.getSession()
+    .then(({ data, error }) => {
+      if (error) throw error;
+      return refreshAuthState(data.session);
+    })
+    .catch(error => {
+      console.error("초기 로그인 상태 확인 오류:", error);
+      message(
+        "auth-message",
+        "로그인 상태를 확인하지 못했어요. 페이지를 새로고침해 주세요.",
+        true
+      );
+    });
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    queueMicrotask(() => refreshAuthState(session));
+  });
+}
+
